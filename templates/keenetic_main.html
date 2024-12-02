@@ -1,0 +1,49 @@
+{% extends "layouts/module_admin.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="Keenetic">Keenetic</a></li>
+{% endblock %}
+{% block module %}
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+  Settings
+</button>
+<a href="?op=add" class="btn btn-primary" title="Add">Add router</a>
+<div class="table-responsive">
+  <table class="table table-hover table-sm">
+      <thead>
+          <tr>
+              <th>Title</th>
+              <th>Model</th>
+              <th>IP</th>
+              <th>Online</th>
+              <th>Updated</th>
+              <th></th>
+          </tr>
+      </thead>
+      <tbody>
+          {% for router in routers %}
+          <tr>
+              <td class="py-1">{{ router.title }}</td>
+              <td class="py-1">{{ router.model }}</td>
+              <td class="py-1">{{ router.ip }}</td>
+              <td class="py-1">                    
+                {%if router.online%}
+                <span class="badge bg-success">Online</span>
+                {%else%}
+                <span class="badge bg-danger">Offline</span>
+                {%endif%}</td>
+              <td class="py-1" id="dev{{router.id}}_updated">
+                  {{router.updated}}
+              </td>
+              <td  class="py-1" width="1%" nowrap>
+                  <div>
+                    <a href="?router={{router.id}}" class="btn btn-secondary" title="Devices"><i class="feather icon-align-justify"></i></a>
+                    <a href="?op=edit&router={{router.id}}" class="btn btn-secondary" title="Edit"><i class="feather icon-edit"></i></a>
+                    <a href="?op=delete&router={{router.id}}" onClick="return confirm('Are you sure? Please confirm.')" class="btn btn-danger" title="Delete"><i class="feather icon-trash"></i></a>
+                  </div>
+              </td>
+          </tr>
+          {% endfor %}
+      </tbody>
+  </table>
+</div>
+{% endblock %}

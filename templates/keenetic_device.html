@@ -1,0 +1,40 @@
+{% extends "layouts/module_admin.html" %}
+{% from "macros/select.html" import render_linked_select %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="Keenetic">Keenetic</a></li>
+<li class="breadcrumb-item">{{form.title.data}}</li>
+{% endblock %}
+{% block module %}
+
+{% if form.errors %}
+<div class="alert alert-warning mt-3">
+    <ul>
+    {% for field, errors in form.errors.items() %}
+        {% for error in errors %}
+            <li>{{field}}: {{ error }}</li>
+        {% endfor %}
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form id="form" method="POST">
+    <!-- Поля формы -->
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        <div class="mb-3">
+            {{ form.title.label(class="form-label") }}
+            {{ form.title(class="form-control") }}
+        </div>
+        <div>
+            {{ form.ip.label(class="form-label") }}
+            {{ form.ip(class="form-control")}}
+        </div>
+        {{ render_linked_select(form.linked_object, None, None) }}
+    </div>
+    <!-- Кнопка отправки формы -->
+    <button type="submit" class="btn btn-primary">Submit</button>
+    <a href="Keenetic?router={{router_id}}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}
