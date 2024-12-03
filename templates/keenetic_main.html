@@ -4,9 +4,9 @@
 {% endblock %}
 {% block module %}
 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
-  Settings
+  <i class="fas fa-cog me-2"></i>Settings
 </button>
-<a href="?op=add" class="btn btn-primary" title="Add">Add router</a>
+<a href="?op=add" class="btn btn-primary" title="Add"><i class="fas fa-plus me-2"></i>Add router</a>
 <div class="table-responsive">
   <table class="table table-hover table-sm">
       <thead>
@@ -45,5 +45,31 @@
           {% endfor %}
       </tbody>
   </table>
+</div>
+
+<!-- Модальное окно с настройками -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <form  method="POST">
+          <div class="modal-header">
+              <h5 class="modal-title" id="exampleModalLabel">Settings</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+              <!-- Поля формы -->
+              {{ form.hidden_tag() }}
+              <div class="mb-3">
+                  {{ form.interval.label(class="form-label") }}
+                  {{ form.interval(class="form-control") }}
+              </div>
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+          </form>
+      </div>
+  </div>
 </div>
 {% endblock %}

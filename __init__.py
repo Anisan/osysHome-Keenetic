@@ -12,6 +12,7 @@ from plugins.Keenetic.models.Router import Router
 from plugins.Keenetic.models.Device import Device
 from plugins.Keenetic.forms.RouterForm import RouterForm
 from plugins.Keenetic.forms.DeviceForm import DeviceForm
+from plugins.Keenetic.forms.SettingForms import SettingsForm
 
 
 class Keenetic(BasePlugin):
@@ -83,9 +84,20 @@ class Keenetic(BasePlugin):
                 "devices": devices,
             }
             return self.render("keenetic_devices.html", content)
+        
+        settings = SettingsForm()
+        if request.method == 'GET':
+            settings.interval.data = self.config.get('interval',5)
+        else:
+            if settings.validate_on_submit():
+                self.config["interval"] = settings.interval.data
+                self.saveConfig()
+                return redirect("Keenetic")
+            
         routers = Router.query.all()
         content = {
             "routers": routers,
+            "form": settings,
         }
         return self.render("keenetic_main.html", content)
 
@@ -116,6 +128,8 @@ class Keenetic(BasePlugin):
                     if not port:
                         port = 80
                     self.routers[ip] = ApiRouter(router.login, router.password, ip, port)
+                if not self.routers[ip].isAuth:
+                    self.routers[ip].auth()
                 info = self.routers[ip].info
                 if info:
                     router.model = info['show']['version']['model']
@@ -133,13 +147,20 @@ class Keenetic(BasePlugin):
                             inet.ip = info['show']['interface'][interface]['address']
                         else:
                             inet.ip = ""
+                        if inet.linked_object:
+                            updatePropertyThread(inet.linked_object + ".ip",inet.ip, self.name)
+                            updatePropertyThread(inet.linked_object + ".online",inet.online, self.name)
                     except Exception as ex:
                         self.logger.error("Error get status internet",ex)
                 else:
                     router.online = 0
+                    router.updated = datetime.datetime.now()
                 session.commit()
                 if router.linked_object:
                     updatePropertyThread(router.linked_object + ".online", router.online, self.name)
+                
+                if not self.routers[ip].isAuth:
+                    continue
 
                 devs = self.routers[ip].devices
                 #self.logger.debug(info, devs)
@@ -162,4 +183,4 @@ class Keenetic(BasePlugin):
                         #updatePropertyThread(rec.linked_object+".online",rec.online)
                 session.commit()
 
-        self.event.wait(5.0)
+        self.event.wait(float(self.config.get('interval',5.0)))
