@@ -9,7 +9,7 @@ from app.core.lib.object import updatePropertyThread
 from app.core.main.BasePlugin import BasePlugin
 from plugins.Keenetic.keenetic import ApiRouter
 from plugins.Keenetic.models.Router import Router
-from plugins.Keenetic.models.Device import Device
+from plugins.Keenetic.models.Device import KeeneticDevice
 from plugins.Keenetic.forms.RouterForm import RouterForm
 from plugins.Keenetic.forms.DeviceForm import DeviceForm
 from plugins.Keenetic.forms.SettingForms import SettingsForm
@@ -39,7 +39,7 @@ class Keenetic(BasePlugin):
                 if router_id > 0:
                     qry = delete(Router).where(Router.id == router_id)
                 if device_id > 0:
-                    qry = delete(Device).where(Device.id == device_id)
+                    qry = delete(KeeneticDevice).where(KeeneticDevice.id == device_id)
                 session.execute(qry)
                 session.commit()
             return redirect("Keenetic")
@@ -67,7 +67,7 @@ class Keenetic(BasePlugin):
                     return self.render("keenetic_router.html", {"form": form})
             if device_id:
                 with session_scope() as session:
-                    device = session.get(Device, device_id)
+                    device = session.get(KeeneticDevice, device_id)
                     form = DeviceForm(obj=device)
                     if form.validate_on_submit():
                         form.populate_obj(device)
@@ -78,7 +78,7 @@ class Keenetic(BasePlugin):
         router_id = request.args.get("router", None)
         if router_id:
             router = Router.query.filter(Router.id == router_id).one_or_404()
-            devices = Device.query.filter(Device.router_id == router_id).all()
+            devices = KeeneticDevice.query.filter(KeeneticDevice.router_id == router_id).all()
             content = {
                 "router": router,
                 "devices": devices,
@@ -106,7 +106,7 @@ class Keenetic(BasePlugin):
         routers = Router.query.filter(or_(Router.title.contains(query),Router.ip.contains(query),Router.linked_object.contains(query))).all()
         for router in routers:
             res.append({"url":f'Keenetic?op=edit&router={router.id}', "title": f'Router: {router.title}', "tags": [{"name":"Keenetic","color":"info"}]})
-        devices = Device.query.filter(or_(Device.title.contains(query),Device.linked_object.contains(query))).all()
+        devices = KeeneticDevice.query.filter(or_(KeeneticDevice.title.contains(query),KeeneticDevice.linked_object.contains(query))).all()
         for device in devices:
             res.append({"url":f'Keenetic?op=edit&device={device.id}', "title":f'Device: {device.title}', "tags":[{"name":"Keenetic","color":"warning"}]})
         return res
@@ -115,7 +115,7 @@ class Keenetic(BasePlugin):
         content = {}
         with session_scope() as session:
             content['routers'] = session.query(Router).count()
-            content['devices'] = session.query(Device).count()
+            content['devices'] = session.query(KeeneticDevice).count()
         return render_template("widget_keenetic.html",**content)
 
     def cyclic_task(self):
@@ -136,9 +136,9 @@ class Keenetic(BasePlugin):
                     router.online = 1
                     router.updated = datetime.datetime.now()
                     try:
-                        inet = session.query(Device).filter(Device.router_id == router.id, Device.mac == '0.0.0.0.0.0', Device.title == "Internet").one_or_none()
+                        inet = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.mac == '0.0.0.0.0.0', KeeneticDevice.title == "Internet").one_or_none()
                         if not inet:
-                            inet = Device(router_id=router.id, mac="0.0.0.0.0.0", title='Internet')
+                            inet = KeeneticDevice(router_id=router.id, mac="0.0.0.0.0.0", title='Internet')
                             session.add(inet)
                         inet.updated = datetime.datetime.now()
                         inet.online = 1 if info['show']['internet']['status']['internet'] else 0
@@ -165,13 +165,13 @@ class Keenetic(BasePlugin):
                 devs = self.routers[ip].devices
                 #self.logger.debug(info, devs)
                 for dev in devs:
-                    rec = session.query(Device).filter(Device.router_id == router.id, Device.mac == dev.mac).one_or_none()
+                    rec = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.mac == dev.mac).one_or_none()
                     if not rec:
-                        rec = session.query(Device).filter(Device.router_id == router.id, Device.title == dev.name).one_or_none()
+                        rec = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.title == dev.name).one_or_none()
                         if rec:
                             rec.mac = dev.mac
                         else:
-                            rec = Device(router_id=router.id, mac=dev.mac)
+                            rec = KeeneticDevice(router_id=router.id, mac=dev.mac)
                             session.add(rec)
                     rec.updated = datetime.datetime.now()
                     rec.ip = dev.ip

@@ -1,6 +1,6 @@
 from app.database import Column, Model, SurrogatePK, db
 
-class Device(SurrogatePK, db.Model):
+class KeeneticDevice(SurrogatePK, db.Model):
     __tablename__ = 'keenetic_devices'
     router_id = Column(db.Integer())
     title = Column(db.String(100))
