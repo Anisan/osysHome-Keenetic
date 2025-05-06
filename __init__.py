@@ -4,7 +4,7 @@
 import datetime
 from flask import redirect, render_template
 from sqlalchemy import delete, or_
-from app.database import session_scope, row2dict
+from app.database import session_scope, row2dict, get_now_to_utc
 from app.core.lib.object import updatePropertyThread
 from app.core.main.BasePlugin import BasePlugin
 from plugins.Keenetic.keenetic import ApiRouter
@@ -136,13 +136,13 @@ class Keenetic(BasePlugin):
                 if info:
                     router.model = info['show']['version']['model']
                     router.online = 1
-                    router.updated = datetime.datetime.now(datetime.timezone.utc)
+                    router.updated = get_now_to_utc()
                     try:
                         inet = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.mac == '0.0.0.0.0.0', KeeneticDevice.title == "Internet").one_or_none()
                         if not inet:
                             inet = KeeneticDevice(router_id=router.id, mac="0.0.0.0.0.0", title='Internet')
                             session.add(inet)
-                        inet.updated = datetime.datetime.now(datetime.timezone.utc)
+                        inet.updated = get_now_to_utc()
                         inet.online = 1 if info['show']['internet']['status']['internet'] else 0
                         if inet.online == 1:
                             interface = info['show']['internet']['status']['gateway']['interface']
@@ -156,7 +156,7 @@ class Keenetic(BasePlugin):
                         self.logger.error("Error get status internet",ex)
                 else:
                     router.online = 0
-                    router.updated = datetime.datetime.now(datetime.timezone.utc)
+                    router.updated = get_now_to_utc()
                 session.commit()
                 if router.linked_object:
                     updatePropertyThread(router.linked_object + ".online", router.online, self.name)
@@ -175,7 +175,7 @@ class Keenetic(BasePlugin):
                         else:
                             rec = KeeneticDevice(router_id=router.id, mac=dev.mac)
                             session.add(rec)
-                    rec.updated = datetime.datetime.now(datetime.timezone.utc)
+                    rec.updated = get_now_to_utc()
                     rec.ip = dev.ip
                     rec.title = dev.name
                     rec.online = 1 if dev.link == 'up' else 0
