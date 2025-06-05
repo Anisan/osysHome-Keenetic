@@ -2,7 +2,7 @@
 {% from "macros/select.html" import render_linked_select %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Keenetic">Keenetic</a></li>
+<li class="breadcrumb-item"><a href="Keenetic">{{ _('Keenetic')}}</a></li>
 <li class="breadcrumb-item">{{form.title.data}}</li>
 {% endblock %}
 {% block module %}
@@ -24,7 +24,7 @@
     {{ form.hidden_tag() }}
     <div class="mb-3">
         <div class="mb-3">
-            {{ form.title.label(class="form-label") }}
+            <label class="form-label">{{ _('Title') }}</label>
             {{ form.title(class="form-control") }}
         </div>
         <div class="mb-3">
@@ -34,7 +34,7 @@
         {{ render_linked_select(form.linked_object, None, None) }}
     </div>
     <!-- Кнопка отправки формы -->
-    <button type="submit" class="btn btn-primary">Submit</button>
-    <a href="Keenetic?router={{router_id}}" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
+    <a href="Keenetic?router={{router_id}}" class="btn btn-secondary">{{ _('Cancel')}}</a>
 </form>
 {% endblock %}

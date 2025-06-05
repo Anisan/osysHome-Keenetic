@@ -1,21 +1,21 @@
 {% extends "layouts/module_admin.html" %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Keenetic">Keenetic</a></li>
+<li class="breadcrumb-item"><a href="Keenetic">{{ _('Keenetic')}}</a></li>
 {% endblock %}
 {% block module %}
 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
-  <i class="fas fa-cog me-2"></i>Settings
+  <i class="fas fa-cog me-2"></i>{{ _('Settings')}}
 </button>
-<a href="?op=add" class="btn btn-primary" title="Add"><i class="fas fa-plus me-2"></i>Add router</a>
+<a href="?op=add" class="btn btn-primary" title="Add"><i class="fas fa-plus me-2"></i>{{ _('Add router')}}</a>
 <div class="table-responsive">
   <table class="table table-hover table-sm">
       <thead>
           <tr>
-              <th>Title</th>
-              <th>Model</th>
+              <th>{{ _('Title')}}</th>
+              <th>{{ _('Model')}}</th>
               <th>IP</th>
-              <th>Online</th>
-              <th>Updated</th>
+              <th>{{ _('Online')}}</th>
+              <th>{{ _('Updated')}}</th>
               <th></th>
           </tr>
       </thead>
@@ -27,18 +27,18 @@
               <td class="py-1">{{ router.ip }}</td>
               <td class="py-1">                    
                 {%if router.online%}
-                <span class="badge bg-success">Online</span>
+                <span class="badge bg-success">{{ _('Online')}}</span>
                 {%else%}
-                <span class="badge bg-danger">Offline</span>
+                <span class="badge bg-danger">{{ _('Offline')}}</span>
                 {%endif%}</td>
               <td class="py-1" id="dev{{router.id}}_updated">
                   {{router.updated}}
               </td>
               <td  class="py-1" width="1%" nowrap>
                   <div>
-                    <a href="?router={{router.id}}" class="btn btn-secondary" title="Devices"><i class="feather icon-align-justify"></i></a>
-                    <a href="?op=edit&router={{router.id}}" class="btn btn-secondary" title="Edit"><i class="feather icon-edit"></i></a>
-                    <a href="?op=delete&router={{router.id}}" onClick="return confirm('Are you sure? Please confirm.')" class="btn btn-danger" title="Delete"><i class="feather icon-trash"></i></a>
+                    <a href="?router={{router.id}}" class="btn btn-secondary" title="{{ _('Devices')}}"><i class="feather icon-align-justify"></i></a>
+                    <a href="?op=edit&router={{router.id}}" class="btn btn-secondary" title="{{ _('Edit')}}"><i class="feather icon-edit"></i></a>
+                    <a href="?op=delete&router={{router.id}}" onClick="return confirm('Are you sure? Please confirm.')" class="btn btn-danger" title="{{ _('Delete')}}"><i class="feather icon-trash"></i></a>
                   </div>
               </td>
           </tr>
@@ -53,20 +53,20 @@
       <div class="modal-content">
           <form  method="POST">
           <div class="modal-header">
-              <h5 class="modal-title" id="exampleModalLabel">Settings</h5>
+              <h5 class="modal-title" id="exampleModalLabel">{{ _('Settings')}}</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
               <!-- Поля формы -->
               {{ form.hidden_tag() }}
               <div class="mb-3">
-                  {{ form.interval.label(class="form-label") }}
+                  <label class="form-label">{{ _('Update interval') }}</label>
                   {{ form.interval(class="form-control") }}
               </div>
           </div>
           <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-              <button type="submit" class="btn btn-primary">Submit</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close')}}</button>
+              <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
           </div>
           </form>
       </div>

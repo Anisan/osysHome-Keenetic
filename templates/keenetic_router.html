@@ -2,7 +2,7 @@
 {% from "macros/select.html" import render_linked_select %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Keenetic">Keenetic</a></li>
+<li class="breadcrumb-item"><a href="Keenetic">{{ _('Keenetic')}}</a></li>
 <li class="breadcrumb-item">{{form.title.data}}</li>
 {% endblock %}
 {% block module %}
@@ -24,29 +24,29 @@
     {{ form.hidden_tag() }}
     <div class="mb-3">
         <div class="mb-3">
-            {{ form.title.label(class="form-label") }}
+            <label class="form-label">{{ _('Name') }}</label>
             {{ form.title(class="form-control") }}
         </div>
         <div>
-            {{ form.ip.label(class="form-label") }}
+            <label class="form-label">IP</label>
             {{ form.ip(class="form-control")}}
         </div>
         <div>
-            {{ form.port.label(class="form-label") }}
+            <label class="form-label">{{ _('Port') }}</label>
             {{ form.port(class="form-control")}}
         </div>
         <div class="mb-3">
-            {{ form.login.label(class="form-label") }}
+            <label class="form-label">{{ _('Username') }}</label>
             {{ form.login(class="form-control") }}
         </div>
         <div class="mb-3">
-            {{ form.password.label(class="form-label") }}
+            <label class="form-label">{{ _('Password') }}</label>
             {{ form.password(class="form-control", type="password") }}
         </div>
         {{ render_linked_select(form.linked_object, None, None) }}
     </div>
     <!-- Кнопка отправки формы -->
-    <button type="submit" class="btn btn-primary">Submit</button>
-    <a href="Keenetic" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
+    <a href="Keenetic" class="btn btn-secondary">{{ _('Cancel')}}</a>
 </form>
 {% endblock %}

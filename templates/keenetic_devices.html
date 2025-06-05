@@ -2,7 +2,7 @@
 {% from "macros/code_editor.html" import render_editor %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Keenetic">Keenetic</a></li>
+<li class="breadcrumb-item"><a href="Keenetic">{{ _('Keenetic')}}</a></li>
 <li class="breadcrumb-item">{{router.title}}</li>
 {% endblock %}
 {% block module %}
@@ -11,12 +11,12 @@
     <table class="table table-hover table-sm">
         <thead>
             <tr>
-                <th>Title</th>
+                <th>{{ _('Title')}}</th>
                 <th>IP</th>
                 <th>MAC</th>
-                <th>Online</th>
-                <th>Linked object</th>
-                <th>Updated</th>
+                <th>{{ _('Online')}}</th>
+                <th>{{ _('Linked object')}}</th>
+                <th>{{ _('Updated')}}</th>
                 <th></th>
             </tr>
         </thead>
@@ -28,9 +28,9 @@
                 <td class="py-1">{{ device.mac }}</td>
                 <td class="py-1">                    
                   {%if device.online%}
-                  <span class="badge bg-success">Online</span>
+                  <span class="badge bg-success">{{ _('Online')}}</span>
                   {%else%}
-                  <span class="badge bg-danger">Offline</span>
+                  <span class="badge bg-danger">{{ _('Offline')}}</span>
                   {%endif%}
                 </td>
                 <td class="py-1">{{ device.linked_object }}</td>
@@ -39,8 +39,8 @@
                 </td>
                 <td  class="py-1" width="1%" nowrap>
                     <div>
-                        <a href="?op=edit&device={{device.id}}" class="btn btn-secondary" title="Edit"><i class="feather icon-edit"></i></a>
-                        <a href="?op=delete&device={{device.id}}" onClick="return confirm('Are you sure? Please confirm.')" class="btn btn-danger" title="Delete"><i class="feather icon-trash"></i></a>
+                        <a href="?op=edit&device={{device.id}}" class="btn btn-secondary" title="{{ _('Edit')}}"><i class="feather icon-edit"></i></a>
+                        <a href="?op=delete&device={{device.id}}" onClick="return confirm('Are you sure? Please confirm.')" class="btn btn-danger" title="{{ _('Delete')}}"><i class="feather icon-trash"></i></a>
                     </div>
                 </td>
             </tr>
