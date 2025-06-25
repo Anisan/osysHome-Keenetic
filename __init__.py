@@ -120,6 +120,13 @@ class Keenetic(BasePlugin):
             content['devices'] = session.query(KeeneticDevice).count()
         return render_template("widget_keenetic.html",**content)
 
+    def changeObject(self, event, object_name, property_name, method_name, new_value):
+        with session_scope() as session:
+            devices = session.query(KeeneticDevice).filter(KeeneticDevice.linked_object == object_name).all()
+            for device in devices:
+                device.linked_object = new_value
+            session.commit()
+
     def cyclic_task(self):
         with session_scope() as session:
             routers = session.query(Router).all()
@@ -165,7 +172,7 @@ class Keenetic(BasePlugin):
                     continue
 
                 devs = self.routers[ip].devices
-                #self.logger.debug(info, devs)
+                self.logger.debug(info, devs)
                 for dev in devs:
                     rec = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.mac == dev.mac).one_or_none()
                     if not rec:
@@ -182,6 +189,7 @@ class Keenetic(BasePlugin):
                     if rec.linked_object:
                         updatePropertyThread(rec.linked_object + ".ip",rec.ip, self.name)
                         updatePropertyThread(rec.linked_object + ".online",rec.online, self.name)
+                        updatePropertyThread(rec.linked_object + ".signal_strength",dev.rssi, self.name)
                         #updatePropertyThread(rec.linked_object+".online",rec.online)
                 session.commit()
 
