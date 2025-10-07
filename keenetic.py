@@ -11,6 +11,9 @@ class ConnectedDevice:
 
     def __getattr__(self, attr):
         return self.__dict__.get(attr)
+        
+    def __str__(self):
+        return f"ConnectedDevice({self.__dict__})"
 
 class ApiRouter:
     def __init__(self, username="admin", password="", host="192.168.1.1", port=80):

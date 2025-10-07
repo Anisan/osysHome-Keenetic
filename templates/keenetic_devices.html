@@ -33,7 +33,11 @@
                   <span class="badge bg-danger">{{ _('Offline')}}</span>
                   {%endif%}
                 </td>
-                <td class="py-1">{{ device.linked_object }}</td>
+                <td class="py-1">
+                    {%if device.linked_object %}
+                    <a href="/admin/Objects?view=object&object={{ device.linked_object }}&tab=properties">{{ device.linked_object }}</a>
+                    {%endif%}
+                </td>
                 <td class="py-1" id="dev{{router.id}}_updated">
                     {{device.updated}}
                 </td>

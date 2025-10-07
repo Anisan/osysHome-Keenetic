@@ -172,7 +172,6 @@ class Keenetic(BasePlugin):
                     continue
 
                 devs = self.routers[ip].devices
-                self.logger.debug(info, devs)
                 for dev in devs:
                     rec = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.mac == dev.mac).one_or_none()
                     if not rec:
@@ -187,9 +186,17 @@ class Keenetic(BasePlugin):
                     rec.title = dev.name
                     rec.online = 1 if dev.link == 'up' else 0
                     if rec.linked_object:
+                        self.logger.debug(dev)
                         updatePropertyThread(rec.linked_object + ".ip",rec.ip, self.name)
                         updatePropertyThread(rec.linked_object + ".online",rec.online, self.name)
-                        updatePropertyThread(rec.linked_object + ".signal_strength",dev.rssi, self.name)
+                        rssi = dev.rssi
+                        if not rssi:
+                            if dev.mws:
+                                rssi = dev.mws.get('rssi')
+                        updatePropertyThread(rec.linked_object + ".signal_strength", rssi, self.name)
+                        updatePropertyThread(rec.linked_object + ".rxbytes",dev.rxbytes, self.name)
+                        updatePropertyThread(rec.linked_object + ".txbytes",dev.txbytes, self.name)
+                        updatePropertyThread(rec.linked_object + ".uptime",dev.uptime, self.name)
                         #updatePropertyThread(rec.linked_object+".online",rec.online)
                 session.commit()
 
