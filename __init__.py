@@ -2,6 +2,8 @@
 
 """
 import datetime
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import redirect, render_template
 from sqlalchemy import delete, or_
 from app.database import session_scope, row2dict, get_now_to_utc
@@ -26,6 +28,8 @@ class Keenetic(BasePlugin):
         self.category = "Devices"
         self.version = "0.1"
         self.routers = {}
+        self._processing_routers = set()
+        self._processing_lock = threading.Lock()
 
     def initialization(self):
         pass
@@ -128,76 +132,107 @@ class Keenetic(BasePlugin):
             session.commit()
 
     def cyclic_task(self):
+        def process_router(router):
+            router_id = router.id
+            # Проверяем и добавляем роутер в набор обрабатываемых
+            with self._processing_lock:
+                if router_id in self._processing_routers:
+                    return  # Роутер уже обрабатывается, пропускаем
+                self._processing_routers.add(router_id)
+            
+            try:
+                with session_scope() as session:
+                    # Перезагружаем объект роутера в новую сессию
+                    router = session.get(Router, router_id)
+                    if not router:
+                        return
+                    
+                    ip = router.ip
+                    if ip not in self.routers:
+                        port = router.port
+                        if not port:
+                            port = 80
+                        self.routers[ip] = ApiRouter(router.login, router.password, ip, port)
+                    if not self.routers[ip].isAuth:
+                        self.routers[ip].auth()
+                    info = self.routers[ip].info
+                    if info:
+                        router.model = info['show']['version']['model']
+                        router.online = 1
+                        router.updated = get_now_to_utc()
+                        try:
+                            inet = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.mac == '0.0.0.0.0.0', KeeneticDevice.title == "Internet").one_or_none()
+                            if not inet:
+                                inet = KeeneticDevice(router_id=router.id, mac="0.0.0.0.0.0", title='Internet')
+                                session.add(inet)
+                            inet.updated = get_now_to_utc()
+                            inet.online = 1 if info['show']['internet']['status']['internet'] else 0
+                            if inet.online == 1:
+                                interface = info['show']['internet']['status']['gateway']['interface']
+                                inet.ip = info['show']['interface'][interface]['address']
+                            else:
+                                inet.ip = ""
+                            if inet.linked_object:
+                                updatePropertyThread(inet.linked_object + ".ip",inet.ip, self.name)
+                                updatePropertyThread(inet.linked_object + ".online",inet.online, self.name)
+                        except Exception as ex:
+                            self.logger.exception("Error get status internet")
+                    else:
+                        router.online = 0
+                        router.updated = get_now_to_utc()
+                    session.commit()
+                    if router.linked_object:
+                        updatePropertyThread(router.linked_object + ".online", router.online, self.name)
+                    
+                    if not self.routers[ip].isAuth:
+                        return
+
+                    devs = self.routers[ip].devices
+                    for dev in devs:
+                        rec = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.mac == dev.mac).one_or_none()
+                        if not rec:
+                            rec = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.title == dev.name).one_or_none()
+                            if rec:
+                                rec.mac = dev.mac
+                            else:
+                                rec = KeeneticDevice(router_id=router.id, mac=dev.mac)
+                                session.add(rec)
+                        rec.updated = get_now_to_utc()
+                        rec.ip = dev.ip
+                        rec.title = dev.name
+                        rec.online = 1 if dev.link == 'up' else 0
+                        if rec.linked_object:
+                            self.logger.debug(dev)
+                            updatePropertyThread(rec.linked_object + ".ip",rec.ip, self.name)
+                            updatePropertyThread(rec.linked_object + ".online",rec.online, self.name)
+                            rssi = dev.rssi
+                            if not rssi:
+                                if dev.mws:
+                                    rssi = dev.mws.get('rssi')
+                            updatePropertyThread(rec.linked_object + ".signal_strength", rssi, self.name)
+                            updatePropertyThread(rec.linked_object + ".rxbytes",dev.rxbytes, self.name)
+                            updatePropertyThread(rec.linked_object + ".txbytes",dev.txbytes, self.name)
+                            updatePropertyThread(rec.linked_object + ".uptime",dev.uptime, self.name)
+                    session.commit()
+            finally:
+                # Удаляем роутер из набора обрабатываемых
+                with self._processing_lock:
+                    self._processing_routers.discard(router_id)
+
         with session_scope() as session:
             routers = session.query(Router).all()
-            for router in routers:
-                ip = router.ip
-                if ip not in self.routers:
-                    port = router.port
-                    if not port:
-                        port = 80
-                    self.routers[ip] = ApiRouter(router.login, router.password, ip, port)
-                if not self.routers[ip].isAuth:
-                    self.routers[ip].auth()
-                info = self.routers[ip].info
-                if info:
-                    router.model = info['show']['version']['model']
-                    router.online = 1
-                    router.updated = get_now_to_utc()
-                    try:
-                        inet = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.mac == '0.0.0.0.0.0', KeeneticDevice.title == "Internet").one_or_none()
-                        if not inet:
-                            inet = KeeneticDevice(router_id=router.id, mac="0.0.0.0.0.0", title='Internet')
-                            session.add(inet)
-                        inet.updated = get_now_to_utc()
-                        inet.online = 1 if info['show']['internet']['status']['internet'] else 0
-                        if inet.online == 1:
-                            interface = info['show']['internet']['status']['gateway']['interface']
-                            inet.ip = info['show']['interface'][interface]['address']
-                        else:
-                            inet.ip = ""
-                        if inet.linked_object:
-                            updatePropertyThread(inet.linked_object + ".ip",inet.ip, self.name)
-                            updatePropertyThread(inet.linked_object + ".online",inet.online, self.name)
-                    except Exception as ex:
-                        self.logger.error("Error get status internet",ex)
-                else:
-                    router.online = 0
-                    router.updated = get_now_to_utc()
-                session.commit()
-                if router.linked_object:
-                    updatePropertyThread(router.linked_object + ".online", router.online, self.name)
+            
+            # Process routers in parallel using ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=min(len(routers), 10)) as executor:
+                # Submit all router processing tasks
+                future_to_router = {executor.submit(process_router, router): router for router in routers}
                 
-                if not self.routers[ip].isAuth:
-                    continue
-
-                devs = self.routers[ip].devices
-                for dev in devs:
-                    rec = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.mac == dev.mac).one_or_none()
-                    if not rec:
-                        rec = session.query(KeeneticDevice).filter(KeeneticDevice.router_id == router.id, KeeneticDevice.title == dev.name).one_or_none()
-                        if rec:
-                            rec.mac = dev.mac
-                        else:
-                            rec = KeeneticDevice(router_id=router.id, mac=dev.mac)
-                            session.add(rec)
-                    rec.updated = get_now_to_utc()
-                    rec.ip = dev.ip
-                    rec.title = dev.name
-                    rec.online = 1 if dev.link == 'up' else 0
-                    if rec.linked_object:
-                        self.logger.debug(dev)
-                        updatePropertyThread(rec.linked_object + ".ip",rec.ip, self.name)
-                        updatePropertyThread(rec.linked_object + ".online",rec.online, self.name)
-                        rssi = dev.rssi
-                        if not rssi:
-                            if dev.mws:
-                                rssi = dev.mws.get('rssi')
-                        updatePropertyThread(rec.linked_object + ".signal_strength", rssi, self.name)
-                        updatePropertyThread(rec.linked_object + ".rxbytes",dev.rxbytes, self.name)
-                        updatePropertyThread(rec.linked_object + ".txbytes",dev.txbytes, self.name)
-                        updatePropertyThread(rec.linked_object + ".uptime",dev.uptime, self.name)
-                        #updatePropertyThread(rec.linked_object+".online",rec.online)
-                session.commit()
+                # Wait for all tasks to complete
+                for future in as_completed(future_to_router):
+                    router = future_to_router[future]
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        self.logger.error(f'Router {router.title} generated an exception: {exc}')
 
         self.event.wait(float(self.config.get('interval',5.0)))
