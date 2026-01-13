@@ -34,104 +34,8 @@ class Keenetic(BasePlugin):
     def initialization(self):
         pass
 
-    def admin(self, request):
-        op = request.args.get("op", None)
-        if op == "delete":
-            router_id = int(request.args.get("router", 0))
-            device_id = int(request.args.get("device", 0))
-            with session_scope() as session:
-                if router_id > 0:
-                    qry = delete(Router).where(Router.id == router_id)
-                if device_id > 0:
-                    qry = delete(KeeneticDevice).where(KeeneticDevice.id == device_id)
-                session.execute(qry)
-                session.commit()
-            return redirect("Keenetic")
-        elif op == "add":
-            form = RouterForm()
-            if form.validate_on_submit():
-                router = Router()
-                form.populate_obj(router)
-                with session_scope() as session:
-                    session.add(router)
-                    session.commit()
-                return redirect("Keenetic")
-            return self.render("keenetic_router.html", {"form": form})
-        elif op == "edit":
-            router_id = request.args.get("router", None)
-            device_id = request.args.get("device", None)
-            if router_id:
-                with session_scope() as session:
-                    router = session.get(Router, router_id)
-                    form = RouterForm(obj=router)
-                    if form.validate_on_submit():
-                        form.populate_obj(router)
-                        session.commit()
-                        return redirect("Keenetic")
-                    return self.render("keenetic_router.html", {"form": form})
-            if device_id:
-                with session_scope() as session:
-                    device = session.get(KeeneticDevice, device_id)
-                    form = DeviceForm(obj=device)
-                    if form.validate_on_submit():
-                        form.populate_obj(device)
-                        session.commit()
-                        return redirect("?router=" + str(device.router_id))
-                    return self.render("keenetic_device.html", {"form": form, "router_id": device.router_id})
-
-        router_id = request.args.get("router", None)
-        if router_id:
-            router = Router.query.filter(Router.id == router_id).one_or_404()
-            devices = KeeneticDevice.query.filter(KeeneticDevice.router_id == router_id).all()
-            devices = [row2dict(device) for device in devices]
-            content = {
-                "router": router,
-                "devices": devices,
-            }
-            return self.render("keenetic_devices.html", content)
-
-        settings = SettingsForm()
-        if request.method == 'GET':
-            settings.interval.data = self.config.get('interval',5)
-        else:
-            if settings.validate_on_submit():
-                self.config["interval"] = settings.interval.data
-                self.saveConfig()
-                return redirect("Keenetic")
-            
-        routers = Router.query.all()
-        routers = [row2dict(router) for router in routers]
-        content = {
-            "routers": routers,
-            "form": settings,
-        }
-        return self.render("keenetic_main.html", content)
-
-    def search(self, query: str) -> list:
-        res = []
-        routers = Router.query.filter(or_(Router.title.contains(query),Router.ip.contains(query),Router.linked_object.contains(query))).all()
-        for router in routers:
-            res.append({"url":f'Keenetic?op=edit&router={router.id}', "title": f'Router: {router.title}', "tags": [{"name":"Keenetic","color":"info"}]})
-        devices = KeeneticDevice.query.filter(or_(KeeneticDevice.title.contains(query),KeeneticDevice.linked_object.contains(query))).all()
-        for device in devices:
-            res.append({"url":f'Keenetic?op=edit&device={device.id}', "title":f'Device: {device.title}', "tags":[{"name":"Keenetic","color":"warning"}]})
-        return res
-
-    def widget(self):
-        content = {}
-        with session_scope() as session:
-            content['routers'] = session.query(Router).count()
-            content['devices'] = session.query(KeeneticDevice).count()
-        return render_template("widget_keenetic.html",**content)
-
-    def changeObject(self, event, object_name, property_name, method_name, new_value):
-        with session_scope() as session:
-            devices = session.query(KeeneticDevice).filter(KeeneticDevice.linked_object == object_name).all()
-            for device in devices:
-                device.linked_object = new_value
-            session.commit()
-
-    def cyclic_task(self):
+    def _poll_routers(self):
+        """Выполняет опрос всех роутеров"""
         def process_router(router):
             router_id = router.id
             # Проверяем и добавляем роутер в набор обрабатываемых
@@ -222,6 +126,10 @@ class Keenetic(BasePlugin):
         with session_scope() as session:
             routers = session.query(Router).all()
             
+            # Если роутеров нет, выходим
+            if not routers:
+                return
+            
             # Process routers in parallel using ThreadPoolExecutor
             with ThreadPoolExecutor(max_workers=min(len(routers), 10)) as executor:
                 # Submit all router processing tasks
@@ -235,4 +143,111 @@ class Keenetic(BasePlugin):
                     except Exception as exc:
                         self.logger.error(f'Router {router.title} generated an exception: {exc}')
 
-        self.event.wait(float(self.config.get('interval',5.0)))
+    def admin(self, request):
+        op = request.args.get("op", None)
+        if op == "delete":
+            router_id = int(request.args.get("router", 0))
+            device_id = int(request.args.get("device", 0))
+            with session_scope() as session:
+                if router_id > 0:
+                    qry = delete(Router).where(Router.id == router_id)
+                if device_id > 0:
+                    qry = delete(KeeneticDevice).where(KeeneticDevice.id == device_id)
+                session.execute(qry)
+                session.commit()
+            return redirect("Keenetic")
+        elif op == "add":
+            form = RouterForm()
+            if form.validate_on_submit():
+                router = Router()
+                form.populate_obj(router)
+                with session_scope() as session:
+                    session.add(router)
+                    session.commit()
+                return redirect("Keenetic")
+            return self.render("keenetic_router.html", {"form": form})
+        elif op == "edit":
+            router_id = request.args.get("router", None)
+            device_id = request.args.get("device", None)
+            if router_id:
+                with session_scope() as session:
+                    router = session.get(Router, router_id)
+                    form = RouterForm(obj=router)
+                    if form.validate_on_submit():
+                        form.populate_obj(router)
+                        session.commit()
+                        return redirect("Keenetic")
+                    return self.render("keenetic_router.html", {"form": form})
+            if device_id:
+                with session_scope() as session:
+                    device = session.get(KeeneticDevice, device_id)
+                    form = DeviceForm(obj=device)
+                    if form.validate_on_submit():
+                        form.populate_obj(device)
+                        # Обрабатываем пустое значение linked_object - сохраняем как None (NULL в БД)
+                        linked_object_value = form.linked_object.data
+                        if linked_object_value is None or (isinstance(linked_object_value, str) and linked_object_value.strip() == ''):
+                            device.linked_object = None
+                        else:
+                            device.linked_object = linked_object_value
+                        session.commit()
+                        return redirect("?router=" + str(device.router_id))
+                    return self.render("keenetic_device.html", {"form": form, "router_id": device.router_id})
+
+        router_id = request.args.get("router", None)
+        if router_id:
+            router = Router.query.filter(Router.id == router_id).one_or_404()
+            devices = KeeneticDevice.query.filter(KeeneticDevice.router_id == router_id).all()
+            devices = [row2dict(device) for device in devices]
+            content = {
+                "router": router,
+                "devices": devices,
+            }
+            return self.render("keenetic_devices.html", content)
+
+        settings = SettingsForm()
+        if request.method == 'GET':
+            settings.interval.data = self.config.get('interval',5)
+        else:
+            if settings.validate_on_submit():
+                self.config["interval"] = settings.interval.data
+                self.saveConfig()
+                return redirect("Keenetic")
+            
+        routers = Router.query.all()
+        routers = [row2dict(router) for router in routers]
+        content = {
+            "routers": routers,
+            "form": settings,
+        }
+        return self.render("keenetic_main.html", content)
+
+    def search(self, query: str) -> list:
+        res = []
+        routers = Router.query.filter(or_(Router.title.contains(query),Router.ip.contains(query),Router.linked_object.contains(query))).all()
+        for router in routers:
+            res.append({"url":f'Keenetic?op=edit&router={router.id}', "title": f'Router: {router.title}', "tags": [{"name":"Keenetic","color":"info"}]})
+        devices = KeeneticDevice.query.filter(or_(KeeneticDevice.title.contains(query),KeeneticDevice.linked_object.contains(query))).all()
+        for device in devices:
+            res.append({"url":f'Keenetic?op=edit&device={device.id}', "title":f'Device: {device.title}', "tags":[{"name":"Keenetic","color":"warning"}]})
+        return res
+
+    def widget(self):
+        content = {}
+        with session_scope() as session:
+            content['routers'] = session.query(Router).count()
+            content['devices'] = session.query(KeeneticDevice).count()
+        return render_template("widget_keenetic.html",**content)
+
+    def changeObject(self, event, object_name, property_name, method_name, new_value):
+        with session_scope() as session:
+            devices = session.query(KeeneticDevice).filter(KeeneticDevice.linked_object == object_name).all()
+            for device in devices:
+                device.linked_object = new_value
+            session.commit()
+
+    def cyclic_task(self):
+        """Циклическая задача опроса роутеров"""
+        self._poll_routers()
+        if self.event:
+            self.event.wait(float(self.config.get('interval',5.0)))
