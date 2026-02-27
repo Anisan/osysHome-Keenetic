@@ -3,6 +3,8 @@ from json import loads
 
 from requests import Session
 
+from app.configuration import Config
+
 class ConnectedDevice:
     def __init__(self, dictionary):
         self.__dict__ = {
@@ -45,10 +47,10 @@ class ApiRouter:
         return self.isAuth
 
     def get(self, address, params={}):
-        return self.__session.get(self.__endpoint + address, params=params)
+        return self.__session.get(self.__endpoint + address, params=params, timeout=Config.HTTP_REQUEST_TIMEOUT)
 
     def post(self, address, data):
-        return self.__session.post(self.__endpoint + address, json=data)
+        return self.__session.post(self.__endpoint + address, json=data, timeout=Config.HTTP_REQUEST_TIMEOUT)
 
     @property
     def devices(self):
