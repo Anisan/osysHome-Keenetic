@@ -34,6 +34,27 @@ class Keenetic(BasePlugin):
     def initialization(self):
         pass
 
+    @staticmethod
+    def _extract_interface_traffic(interface_data):
+        if not isinstance(interface_data, dict):
+            return 0, 0
+
+        rx_candidates = ("rxbytes", "rx_bytes", "received", "received_bytes")
+        tx_candidates = ("txbytes", "tx_bytes", "sent", "sent_bytes")
+
+        def pick_value(candidates):
+            for key in candidates:
+                value = interface_data.get(key)
+                if value is None:
+                    continue
+                try:
+                    return int(value)
+                except (TypeError, ValueError):
+                    continue
+            return 0
+
+        return pick_value(rx_candidates), pick_value(tx_candidates)
+
     def _poll_routers(self):
         """Выполняет опрос всех роутеров"""
         def process_router(router):
@@ -71,14 +92,23 @@ class Keenetic(BasePlugin):
                                 session.add(inet)
                             inet.updated = get_now_to_utc()
                             inet.online = 1 if info['show']['internet']['status']['internet'] else 0
+                            inet_rxbytes = 0
+                            inet_txbytes = 0
                             if inet.online == 1:
-                                interface = info['show']['internet']['status']['gateway']['interface']
-                                inet.ip = info['show']['interface'][interface]['address']
+                                gateway = info['show']['internet']['status'].get('gateway', {})
+                                interface = gateway.get('interface')
+                                interface_info = info['show'].get('interface', {}).get(interface, {}) if interface else {}
+                                inet.ip = interface_info.get('address', "")
+                                if interface:
+                                    interface_stats = self.routers[ip].interface_stat(interface)
+                                    inet_rxbytes, inet_txbytes = self._extract_interface_traffic(interface_stats)
                             else:
                                 inet.ip = ""
                             if inet.linked_object:
                                 updatePropertyThread(inet.linked_object + ".ip",inet.ip, self.name)
                                 updatePropertyThread(inet.linked_object + ".online",inet.online, self.name)
+                                updatePropertyThread(inet.linked_object + ".rxbytes",inet_rxbytes, self.name)
+                                updatePropertyThread(inet.linked_object + ".txbytes",inet_txbytes, self.name)
                         except Exception as ex:
                             self.logger.exception("Error get status internet")
                     else:
@@ -87,6 +117,13 @@ class Keenetic(BasePlugin):
                     session.commit()
                     if router.linked_object:
                         updatePropertyThread(router.linked_object + ".online", router.online, self.name)
+                        resources = self.routers[ip].system_resources()
+                        if resources.get("cpu") is not None:
+                            updatePropertyThread(router.linked_object + ".cpu", resources["cpu"], self.name)
+                        if resources.get("ram") is not None:
+                            updatePropertyThread(router.linked_object + ".ram", resources["ram"], self.name)
+                        if resources.get("uptime") is not None:
+                            updatePropertyThread(router.linked_object + ".uptime", resources["uptime"], self.name)
                     
                     if not self.routers[ip].isAuth:
                         return
@@ -114,8 +151,9 @@ class Keenetic(BasePlugin):
                                 if dev.mws:
                                     rssi = dev.mws.get('rssi')
                             updatePropertyThread(rec.linked_object + ".signal_strength", rssi, self.name)
-                            updatePropertyThread(rec.linked_object + ".rxbytes",dev.rxbytes, self.name)
-                            updatePropertyThread(rec.linked_object + ".txbytes",dev.txbytes, self.name)
+                            if rec.online !=0:
+                                updatePropertyThread(rec.linked_object + ".rxbytes",dev.rxbytes, self.name)
+                                updatePropertyThread(rec.linked_object + ".txbytes",dev.txbytes, self.name)
                             updatePropertyThread(rec.linked_object + ".uptime",dev.uptime, self.name)
                     session.commit()
             finally:
