@@ -1,11 +1,18 @@
 {% extends "layouts/module_admin.html" %}
 {% from "macros/select.html" import render_linked_select %}
+{% from "macros/icon_picker.html" import icon_picker_field, icon_picker_modal, icon_picker_assets %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Keenetic">{{ _('Keenetic')}}</a></li>
-<li class="breadcrumb-item">{{form.title.data}}</li>
+<li class="breadcrumb-item"><a href="/admin/Keenetic">{{ _('Keenetic')}}</a></li>
+{% if router_id %}
+<li class="breadcrumb-item"><a href="/admin/Keenetic?router={{ router_id }}">{{ router_title or form.title.data }}</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ _('Settings')}}</li>
+{% else %}
+<li class="breadcrumb-item active" aria-current="page">{{ _('Add router')}}</li>
+{% endif %}
 {% endblock %}
 {% block module %}
+{% set sync_live = sync_live|default([]) %}
 
 {% if form.errors %}
 <div class="alert alert-warning mt-3">
@@ -20,33 +27,62 @@
 {% endif %}
 
 <form id="form" method="POST">
-    <!-- Поля формы -->
     {{ form.hidden_tag() }}
+    <input type="hidden" name="sync_live_present" value="1">
     <div class="mb-3">
-        <div class="mb-3">
-            <label class="form-label">{{ _('Name') }}</label>
-            {{ form.title(class="form-control") }}
-        </div>
-        <div>
-            <label class="form-label">IP</label>
-            {{ form.ip(class="form-control")}}
-        </div>
-        <div>
-            <label class="form-label">{{ _('Port') }}</label>
-            {{ form.port(class="form-control")}}
-        </div>
-        <div class="mb-3">
-            <label class="form-label">{{ _('Username') }}</label>
-            {{ form.login(class="form-control") }}
-        </div>
-        <div class="mb-3">
-            <label class="form-label">{{ _('Password') }}</label>
-            {{ form.password(class="form-control", type="password") }}
-        </div>
-        {{ render_linked_select(form.linked_object, None, None) }}
+        <label class="form-label">{{ _('Name') }}</label>
+        {{ form.title(class="form-control") }}
     </div>
-    <!-- Кнопка отправки формы -->
+    <div class="mb-3">
+        <label class="form-label">IP</label>
+        {{ form.ip(class="form-control")}}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ _('Port') }}</label>
+        {{ form.port(class="form-control")}}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ _('Username') }}</label>
+        {{ form.login(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ _('Password') }}</label>
+        {{ form.password(class="form-control", type="password") }}
+    </div>
+    {{ icon_picker_field('icon', label=_('Icon'), value=form.icon.data, name='icon') }}
+    {{ render_linked_select(form.linked_object, None, form.linked_method) }}
+    <div class="form-check mb-2">
+        {{ form.poll_log(class="form-check-input", id="poll_log") }}
+        <label class="form-check-label" for="poll_log">{{ _('Poll journal') }}</label>
+    </div>
+    <div class="form-check mb-2">
+        {{ form.log_to_file(class="form-check-input", id="log_to_file") }}
+        <label class="form-check-label" for="log_to_file">{{ _('Write journal to file') }}</label>
+    </div>
+    <div class="form-text mb-2">
+      {{ _('Master switch for logs/KeeneticJournal_<id>.log. If off, rules with Write to journal file do nothing.') }}
+    </div>
+    <div class="form-text mb-3">
+      {{ _('When Poll journal is on, new log lines are buffered in the Log tab.') }}
+      {{ _('Use Log rules (regexp) to write selected lines to logs/KeeneticJournal_<id>.log and/or call a linked method.') }}
+      {{ _('Without log rules: all new lines are written when Write journal to file is on, and router linked_method is called for each line (EVENT=log).') }}
+      {{ _('When a firmware update is available, the router linked_method is called once per version with EVENT=firmware_update, FIRMWARE_VERSION, UPDATE_VERSION.') }}
+      {{ _('Firmware updates also create a system notification (addNotify).') }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ _('Sync live properties') }}</label>
+        <div class="d-flex flex-wrap gap-3">
+            {% for opt in ['online','cpu','ram','uptime','firmware_version','update_available','update_version'] %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="sync_live" value="{{ opt }}" id="sync_{{ opt }}" {% if opt in sync_live %}checked{% endif %}>
+                <label class="form-check-label" for="sync_{{ opt }}">{{ opt }}</label>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
     <a href="Keenetic" class="btn btn-secondary">{{ _('Cancel')}}</a>
 </form>
+{{ icon_picker_modal() }}
+{{ icon_picker_assets() }}
 {% endblock %}

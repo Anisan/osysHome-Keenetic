@@ -1,0 +1,56 @@
+{% extends "layouts/module_admin.html" %}
+{% from "macros/select.html" import render_linked_select %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/admin/Keenetic">{{ _('Keenetic')}}</a></li>
+{% if router_id %}
+<li class="breadcrumb-item"><a href="/admin/Keenetic?router={{ router_id }}#keenetic-log">{{ router_title or _('Log') }}</a></li>
+{% endif %}
+<li class="breadcrumb-item active" aria-current="page">{{ _('Log rule') }}</li>
+{% endblock %}
+{% block module %}
+
+{% if form.errors %}
+<div class="alert alert-warning mt-3">
+    <ul>
+    {% for field, errors in form.errors.items() %}
+        {% for error in errors %}
+            <li>{{field}}: {{ error }}</li>
+        {% endfor %}
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form id="form" method="POST">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        <label class="form-label">{{ _('Title') }}</label>
+        {{ form.title(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ _('Pattern (regexp)') }}</label>
+        {{ form.pattern(class="form-control") }}
+        <div class="form-text">
+          {{ _('Matched against level facility message. Use (?i) for case-insensitive.') }}
+        </div>
+    </div>
+    {{ render_linked_select(form.linked_object, None, form.linked_method) }}
+    <div class="form-text mb-3">
+      {{ _('On match, calls linked_object.linked_method with EVENT=log, RULE_ID, RULE_TITLE, PATTERN.') }}
+    </div>
+    <div class="form-check mb-2">
+        {{ form.write_to_file(class="form-check-input", id="write_to_file") }}
+        <label class="form-check-label" for="write_to_file">{{ _('Write to journal file') }}</label>
+    </div>
+    <div class="form-text mb-2">
+      {{ _('Only works when Write journal to file is enabled in router settings. This flag filters which matched lines are saved.') }}
+    </div>
+    <div class="form-check mb-3">
+        {{ form.active(class="form-check-input", id="active") }}
+        <label class="form-check-label" for="active">{{ _('Active') }}</label>
+    </div>
+    <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
+    <a href="Keenetic?router={{ router_id }}#keenetic-log" class="btn btn-secondary">{{ _('Cancel')}}</a>
+</form>
+{% endblock %}

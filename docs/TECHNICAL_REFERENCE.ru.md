@@ -10,10 +10,15 @@
 | `plugins/Keenetic/keenetic.py` | API-клиент Keenetic (`ApiRouter`) и маппинг подключенных устройств |
 | `plugins/Keenetic/models/Router.py` | SQLAlchemy-модель роутера (`keenetic_routers`) |
 | `plugins/Keenetic/models/Device.py` | SQLAlchemy-модель устройства (`keenetic_devices`) |
+| `plugins/Keenetic/models/Vpn.py` | SQLAlchemy-модель VPN (`keenetic_vpn`) |
+| `plugins/Keenetic/models/LogRule.py` | Правила журнала (`keenetic_log_rules`) |
 | `plugins/Keenetic/forms/RouterForm.py` | Форма роутера и валидация |
 | `plugins/Keenetic/forms/DeviceForm.py` | Форма устройства |
+| `plugins/Keenetic/forms/LogRuleForm.py` | Форма правила журнала |
 | `plugins/Keenetic/forms/SettingForms.py` | Форма настройки интервала опроса |
 | `plugins/Keenetic/templates/*.html` | Админ-страницы и шаблон виджета |
+| `plugins/Keenetic/helpers.py` | Парсинг, sync_live, матчинг regexp правил журнала |
+| `plugins/Keenetic/mcp_support.py` | MCP capabilities / CRUD / operations |
 
 ---
 
@@ -157,6 +162,9 @@ updatePropertyThread(inet.linked_object + ".online", inet.online, self.name)
 | `password` | string(100) | Пароль роутера |
 | `online` | integer | Состояние доступности |
 | `linked_object` | string(100) | Объект osysHome для статуса роутера |
+| `linked_method` | string(100) | Метод: firmware_update; legacy-журнал без правил |
+| `poll_log` | integer | 1 = опрашивать `show log` |
+| `log_to_file` | integer | 1 = мастер-флаг записи в файл журнала |
 | `updated` | datetime | Время последнего обновления |
 
 ### `keenetic_devices` (`KeeneticDevice`)
@@ -172,6 +180,41 @@ updatePropertyThread(inet.linked_object + ".online", inet.online, self.name)
 | `linked_object` | string(100) | Имя объекта osysHome |
 | `updated` | datetime | Время последнего обновления |
 
+### `keenetic_log_rules` (`KeeneticLogRule`)
+
+| Поле | Тип | Смысл |
+| --- | --- | --- |
+| `id` | integer | Первичный ключ |
+| `router_id` | integer | Роутер |
+| `title` | string(100) | Имя правила |
+| `pattern` | string(255) | regexp |
+| `write_to_file` | integer | 1 = писать совпадение в файл **только если** у роутера `log_to_file=1` |
+| `linked_object` | string(100) | Объект для вызова метода (нужен вместе с `linked_method`) |
+| `linked_method` | string(100) | Метод при совпадении |
+| `active` | integer | 0/1 |
+
+---
+
+## Правила журнала
+
+При `poll_log` цикл вызывает `_poll_log` → для каждой **новой** строки `_apply_log_rules`.
+
+Матч: `re.search(pattern, "{level} {facility} {message}")` (`helpers.match_log_rule`). Невалидный pattern — warning в лог плагина, правило пропускается.
+
+```mermaid
+flowchart TD
+  newEntry[Новая строка журнала] --> rulesExist{Есть активные правила?}
+  rulesExist -->|нет| legacy[Писать если log_to_file + вызов метода роутера]
+  rulesExist -->|да| match[Regexp по level facility message]
+  match --> fileCheck{log_to_file и совпало write_to_file?}
+  fileCheck -->|да| writeFile[KeeneticJournal_id.log]
+  match --> methodCheck{Совпало правило с linked_method?}
+  methodCheck -->|да| callMethod[callMethodThread]
+```
+
+- Первый снимок журнала — baseline: буфер UI заполняется, методы/файл **не** вызываются.
+- `EVENT=firmware_update` не идёт через правила журнала.
+
 ---
 
 ## Административные операции
@@ -183,10 +226,13 @@ updatePropertyThread(inet.linked_object + ".online", inet.online, self.name)
 | `op` | Поведение |
 | --- | --- |
 | `add` | Создание роутера через `RouterForm` |
+| `add&log_rule&router=<id>` | Создание правила журнала |
 | `edit&router=<id>` | Редактирование полей роутера |
 | `edit&device=<id>` | Редактирование устройства (`title`, `ip`, `linked_object`) |
-| `delete&router=<id>` | Удаление записи роутера |
+| `edit&log_rule=<id>` | Редактирование правила журнала |
+| `delete&router=<id>` | Удаление роутера (+ devices/vpn/log_rules) |
 | `delete&device=<id>` | Удаление записи устройства |
+| `delete&log_rule=<id>` | Удаление правила журнала |
 
 Другие admin-страницы:
 
