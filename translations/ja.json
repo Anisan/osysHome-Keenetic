@@ -98,5 +98,7 @@
     "Poll VPN": "VPNを取得",
     "VPN polling disabled": "VPNポーリング無効",
     "and enable Poll VPN": "で「VPNを取得」を有効にしてください",
-    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "「VPNを取得」がオンのとき、トンネルとサーバーは各ポーリング周期で更新されます。"
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "「VPNを取得」がオンのとき、トンネルとサーバーは各ポーリング周期で更新されます。",
+    "Keenetic Integration": "Keenetic連携",
+    "Manage Keenetic routers and devices": "Keeneticルーターとデバイスを管理"
 }

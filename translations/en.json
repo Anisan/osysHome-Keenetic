@@ -98,5 +98,7 @@
     "Poll VPN": "Poll VPN",
     "VPN polling disabled": "VPN polling disabled",
     "and enable Poll VPN": "and enable Poll VPN",
-    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "When Poll VPN is on, tunnels and servers are refreshed each poll cycle."
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.",
+    "Keenetic Integration": "Keenetic Integration",
+    "Manage Keenetic routers and devices": "Manage Keenetic routers and devices"
 }

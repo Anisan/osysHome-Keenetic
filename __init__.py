@@ -64,7 +64,7 @@ class Keenetic(BasePlugin):
         self.system = True
         self.actions = ["cycle", "search", "widget"]
         self.category = "Devices"
-        self.version = "0.13"
+        self.version = "0.14"
         self.routers = {}
         self._processing_routers = set()
         self._processing_lock = threading.Lock()
@@ -763,7 +763,7 @@ class Keenetic(BasePlugin):
                             KeeneticDevice.router_id == router_id,
                             KeeneticDevice.title == stable.get("title"),
                         )
-                        .one_or_none()
+                        .first()
                     )
                     if rec:
                         rec.mac = mac

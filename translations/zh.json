@@ -98,5 +98,7 @@
     "Poll VPN": "轮询 VPN",
     "VPN polling disabled": "VPN 轮询已关闭",
     "and enable Poll VPN": "并启用「轮询 VPN」",
-    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "启用「轮询 VPN」后，每个轮询周期会刷新隧道和服务器。"
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "启用「轮询 VPN」后，每个轮询周期会刷新隧道和服务器。",
+    "Keenetic Integration": "Keenetic 集成",
+    "Manage Keenetic routers and devices": "管理 Keenetic 路由器和设备"
 }

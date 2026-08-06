@@ -98,5 +98,7 @@
     "Poll VPN": "Опитувати VPN",
     "VPN polling disabled": "Опитування VPN вимкнено",
     "and enable Poll VPN": "і увімкніть «Опитувати VPN»",
-    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "При опитуванні VPN тунелі та сервери оновлюються кожен цикл опитування."
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "При опитуванні VPN тунелі та сервери оновлюються кожен цикл опитування.",
+    "Keenetic Integration": "Інтеграція Keenetic",
+    "Manage Keenetic routers and devices": "Керування роутерами та пристроями Keenetic"
 }

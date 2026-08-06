@@ -98,5 +98,7 @@
     "Poll VPN": "VPN abfragen",
     "VPN polling disabled": "VPN-Abfrage deaktiviert",
     "and enable Poll VPN": "und aktivieren Sie VPN abfragen",
-    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "Wenn VPN abfragen aktiv ist, werden Tunnel und Server bei jedem Abfragezyklus aktualisiert."
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "Wenn VPN abfragen aktiv ist, werden Tunnel und Server bei jedem Abfragezyklus aktualisiert.",
+    "Keenetic Integration": "Keenetic-Integration",
+    "Manage Keenetic routers and devices": "Keenetic-Router und Geräte verwalten"
 }

@@ -98,5 +98,7 @@
     "Poll VPN": "Interroga VPN",
     "VPN polling disabled": "Interrogazione VPN disattivata",
     "and enable Poll VPN": "e attiva Interroga VPN",
-    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "Con Interroga VPN attivo, tunnel e server si aggiornano a ogni ciclo."
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "Con Interroga VPN attivo, tunnel e server si aggiornano a ogni ciclo.",
+    "Keenetic Integration": "Integrazione Keenetic",
+    "Manage Keenetic routers and devices": "Gestisci router e dispositivi Keenetic"
 }

@@ -98,5 +98,7 @@
     "Poll VPN": "VPN 조회",
     "VPN polling disabled": "VPN 조회 비활성",
     "and enable Poll VPN": "에서 VPN 조회를 켜세요",
-    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "VPN 조회가 켜져 있으면 터널과 서버가 매 조회 주기마다 갱신됩니다."
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "VPN 조회가 켜져 있으면 터널과 서버가 매 조회 주기마다 갱신됩니다.",
+    "Keenetic Integration": "Keenetic 통합",
+    "Manage Keenetic routers and devices": "Keenetic 라우터 및 장치 관리"
 }

@@ -98,5 +98,7 @@
     "Poll VPN": "Consultar VPN",
     "VPN polling disabled": "Consulta VPN desactivada",
     "and enable Poll VPN": "y active Consultar VPN",
-    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "Con Consultar VPN activo, los túneles y servidores se actualizan en cada ciclo."
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "Con Consultar VPN activo, los túneles y servidores se actualizan en cada ciclo.",
+    "Keenetic Integration": "Integración Keenetic",
+    "Manage Keenetic routers and devices": "Administrar routers y dispositivos Keenetic"
 }

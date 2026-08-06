@@ -1,15 +1,48 @@
 {% extends "layouts/module_admin.html" %}
 {% block stylesheets %}
+{{ super() }}
 <link rel="stylesheet" href="{{ config.ASSETS_ROOT }}/plugins/datatables/css/dataTables.bootstrap5.min.css">
+<style>
+    .keenetic-page-header .keenetic-header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    @media (max-width: 767.98px) {
+        .keenetic-page-header .keenetic-header-actions .btn,
+        .keenetic-page-header .keenetic-header-actions > a {
+            flex: 1 1 calc(50% - 0.25rem);
+        }
+    }
+    @media (max-width: 575.98px) {
+        .keenetic-page-header h1 {
+            font-size: 1.25rem;
+        }
+        .keenetic-page-header p {
+            font-size: 0.875rem;
+        }
+    }
+</style>
 {% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item active" aria-current="page"><a href="/admin/Keenetic">{{ _('Keenetic')}}</a></li>
 {% endblock %}
 {% block module %}
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
-  <i class="fas fa-cog me-2"></i>{{ _('Settings')}}
-</button>
-<a href="?op=add" class="btn btn-primary" title="Add"><i class="fas fa-plus me-2"></i>{{ _('Add router')}}</a>
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3 px-2 keenetic-page-header">
+    <img src="/Keenetic/static/Keenetic.png" alt="Logo" class="img-fluid flex-shrink-0" style="max-width: 50px;">
+    <div class="flex-grow-1 min-w-0">
+        <h1 class="h3 mb-0 mt-2">{{ _('Keenetic Integration') }}</h1>
+        <p class="text-muted mb-0">{{ _('Manage Keenetic routers and devices') }}</p>
+    </div>
+    <div class="keenetic-header-actions">
+        <a href="?op=add" class="btn btn-primary" title="Add">
+            <i class="fas fa-plus"></i> {{ _('Add router')}}
+        </a>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+            <i class="fas fa-cog"></i> {{ _('Settings')}}
+        </button>
+    </div>
+</div>
 <div data-async-loading>
   <div class="table-responsive">
   <table id="keenetic-routers-table"
