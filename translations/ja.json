@@ -94,5 +94,9 @@
     "Max in-memory journal lines per router (Log tab and MCP journal collection).": "Max in-memory journal lines per router (Log tab and MCP journal collection).",
     "On match": "一致時",
     "Disabled": "無効",
-    "No actions configured": "アクション未設定"
+    "No actions configured": "アクション未設定",
+    "Poll VPN": "VPNを取得",
+    "VPN polling disabled": "VPNポーリング無効",
+    "and enable Poll VPN": "で「VPNを取得」を有効にしてください",
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "「VPNを取得」がオンのとき、トンネルとサーバーは各ポーリング周期で更新されます。"
 }

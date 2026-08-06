@@ -94,5 +94,9 @@
     "Max in-memory journal lines per router (Log tab and MCP journal collection).": "Max in-memory journal lines per router (Log tab and MCP journal collection).",
     "On match": "In corrispondenza",
     "Disabled": "Disattivato",
-    "No actions configured": "Nessuna azione configurata"
+    "No actions configured": "Nessuna azione configurata",
+    "Poll VPN": "Interroga VPN",
+    "VPN polling disabled": "Interrogazione VPN disattivata",
+    "and enable Poll VPN": "e attiva Interroga VPN",
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "Con Interroga VPN attivo, tunnel e server si aggiornano a ogni ciclo."
 }

@@ -39,6 +39,7 @@ _ROUTER_WRITABLE_FIELDS = (
     "linked_object",
     "linked_method",
     "poll_log",
+    "poll_vpn",
     "log_to_file",
     "icon",
     "sync_live",
@@ -112,6 +113,7 @@ _PLUGIN_NOTES = [
     "IMPORTANT: devices and vpn rows are discovered only by router poll - do NOT create them via upsert. Upsert requires entity_id and only updates bindings (linked_object/method, title, icon, sync_live).",
     "VPN server linked_method is called on client connect/disconnect with USER, IP, EVENT, REMOTE; disconnect includes RXBYTES/TXBYTES.",
     "Optional router poll_log: snapshot journal each poll; Log tab and MCP collection journal expose in-memory buffer.",
+    "Optional router poll_vpn: discover/update VPN tunnels and servers each poll (sessions for VPN servers).",
     "Collection journal: read-only in-memory cache (filter router_id). Entity id format r{router_id}#{log_id}.",
     "Plugin config journal_buffer_limit (10..5000, default 200): max lines kept per router in memory.",
     "Collection log_rules: CRUD allowed. Upsert with entity_id updates the existing rule in place (does not delete/recreate). Omit entity_id only to create a new rule.",
@@ -421,7 +423,7 @@ def _mask_router(data: dict) -> dict:
 
 def _sanitize_entity_row(row: dict) -> dict:
     """Drop non-JSON runtime fields before MCP serialization."""
-    if "password" in row or "poll_log" in row or "log_to_file" in row or "firmware_version" in row:
+    if "password" in row or "poll_log" in row or "poll_vpn" in row or "log_to_file" in row or "firmware_version" in row:
         return _mask_router(row)
     out = dict(row)
     out.pop("last_pushed", None)
@@ -515,6 +517,11 @@ def mcp_entity_schema(collection: str) -> dict:
                     "type": "integer",
                     "enum": [0, 1],
                     "description": "1 = poll router journal each cycle",
+                },
+                "poll_vpn": {
+                    "type": "integer",
+                    "enum": [0, 1],
+                    "description": "1 = poll VPN tunnels/servers each cycle",
                 },
                 "log_to_file": {
                     "type": "integer",
@@ -823,6 +830,8 @@ def mcp_upsert_entity(collection: str, payload: dict, entity_id=None) -> dict:
                 row.linked_method = str(merged.get("linked_method") or "").strip() or None
             if "poll_log" in merged:
                 row.poll_log = 1 if merged.get("poll_log") in (1, "1", True, "true", "True") else 0
+            if "poll_vpn" in merged:
+                row.poll_vpn = 1 if merged.get("poll_vpn") in (1, "1", True, "true", "True") else 0
             if "log_to_file" in merged:
                 row.log_to_file = 1 if merged.get("log_to_file") in (1, "1", True, "true", "True") else 0
             if not row.icon:

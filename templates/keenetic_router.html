@@ -52,6 +52,10 @@
     {{ icon_picker_field('icon', label=_('Icon'), value=form.icon.data, name='icon') }}
     {{ render_linked_select(form.linked_object, None, form.linked_method) }}
     <div class="form-check mb-2">
+        {{ form.poll_vpn(class="form-check-input", id="poll_vpn") }}
+        <label class="form-check-label" for="poll_vpn">{{ _('Poll VPN') }}</label>
+    </div>
+    <div class="form-check mb-2">
         {{ form.poll_log(class="form-check-input", id="poll_log") }}
         <label class="form-check-label" for="poll_log">{{ _('Poll journal') }}</label>
     </div>
@@ -63,6 +67,7 @@
       {{ _('Master switch for logs/KeeneticJournal_<id>.log. If off, rules with Write to journal file do nothing.') }}
     </div>
     <div class="form-text mb-3">
+      {{ _('When Poll VPN is on, tunnels and servers are refreshed each poll cycle.') }}
       {{ _('When Poll journal is on, new log lines are buffered in the Log tab.') }}
       {{ _('Use Log rules (regexp) to write selected lines to logs/KeeneticJournal_<id>.log and/or call a linked method.') }}
       {{ _('Without log rules: all new lines are written when Write journal to file is on, and router linked_method is called for each line (EVENT=log).') }}

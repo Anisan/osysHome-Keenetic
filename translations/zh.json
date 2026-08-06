@@ -94,5 +94,9 @@
     "Max in-memory journal lines per router (Log tab and MCP journal collection).": "Max in-memory journal lines per router (Log tab and MCP journal collection).",
     "On match": "匹配时",
     "Disabled": "已禁用",
-    "No actions configured": "未配置操作"
+    "No actions configured": "未配置操作",
+    "Poll VPN": "轮询 VPN",
+    "VPN polling disabled": "VPN 轮询已关闭",
+    "and enable Poll VPN": "并启用「轮询 VPN」",
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "启用「轮询 VPN」后，每个轮询周期会刷新隧道和服务器。"
 }

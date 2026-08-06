@@ -157,6 +157,13 @@
   </div>
 
   <div class="tab-pane fade" id="keenetic-vpn" role="tabpanel" aria-labelledby="keenetic-vpn-tab" tabindex="0">
+    {% if not poll_vpn %}
+    <div class="alert alert-secondary" data-field="vpn-disabled">
+      {{ _('VPN polling disabled')}} —
+      <a href="?op=edit&router={{ router.id }}">{{ _('Edit')}}</a>
+      {{ _('and enable Poll VPN')}}.
+    </div>
+    {% endif %}
     <div data-async-loading>
     <div class="table-responsive">
         <table id="keenetic-vpn-table"

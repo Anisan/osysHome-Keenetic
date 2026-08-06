@@ -94,5 +94,9 @@
     "Max in-memory journal lines per router (Log tab and MCP journal collection).": "Макс. рядків журналу в памʼяті на роутер (вкладка «Журнал» і MCP-колекція journal).",
     "On match": "При збігу",
     "Disabled": "Вимкнено",
-    "No actions configured": "Дії не налаштовані"
+    "No actions configured": "Дії не налаштовані",
+    "Poll VPN": "Опитувати VPN",
+    "VPN polling disabled": "Опитування VPN вимкнено",
+    "and enable Poll VPN": "і увімкніть «Опитувати VPN»",
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "При опитуванні VPN тунелі та сервери оновлюються кожен цикл опитування."
 }

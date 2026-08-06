@@ -94,5 +94,9 @@
     "Max in-memory journal lines per router (Log tab and MCP journal collection).": "Max in-memory journal lines per router (Log tab and MCP journal collection).",
     "On match": "En cas de correspondance",
     "Disabled": "Désactivé",
-    "No actions configured": "Aucune action configurée"
+    "No actions configured": "Aucune action configurée",
+    "Poll VPN": "Interroger le VPN",
+    "VPN polling disabled": "Interrogation VPN désactivée",
+    "and enable Poll VPN": "et activez Interroger le VPN",
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "Quand Interroger le VPN est activé, tunnels et serveurs sont rafraîchis à chaque cycle."
 }

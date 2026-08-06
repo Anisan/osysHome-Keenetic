@@ -64,7 +64,7 @@ class Keenetic(BasePlugin):
         self.system = True
         self.actions = ["cycle", "search", "widget"]
         self.category = "Devices"
-        self.version = "0.12"
+        self.version = "0.13"
         self.routers = {}
         self._processing_routers = set()
         self._processing_lock = threading.Lock()
@@ -947,7 +947,7 @@ class Keenetic(BasePlugin):
 
                 self._poll_internet(router_id, api, info, now_s)
                 self._poll_devices(router_id, api, info, now_s)
-                self._poll_vpn(router_id, api, info, now_s)
+                self._poll_vpn(router_id, api, info, now_s, router)
                 self._poll_log(router_id, api, router)
             else:
                 with self._cache_lock:
@@ -1149,7 +1149,9 @@ class Keenetic(BasePlugin):
                 ("online", "updated"),
             )
 
-    def _poll_vpn(self, router_id: int, api: ApiRouter, info: dict, now_s: str):
+    def _poll_vpn(self, router_id: int, api: ApiRouter, info: dict, now_s: str, router: dict = None):
+        if router is not None and not router.get("poll_vpn"):
+            return
         seen_server_ids: set = set()
         try:
             show = (info.get("show") or {}) if isinstance(info, dict) else {}
@@ -2047,6 +2049,7 @@ class Keenetic(BasePlugin):
                     router.linked_object = self._normalize_linked(form.linked_object.data)
                     router.linked_method = self._normalize_linked(form.linked_method.data)
                     router.poll_log = 1 if form.poll_log.data else 0
+                    router.poll_vpn = 1 if form.poll_vpn.data else 0
                     router.log_to_file = 1 if form.log_to_file.data else 0
                     router.icon = self._icon_from_form(form)
                     sync = self._sync_live_from_form(form)
@@ -2101,12 +2104,14 @@ class Keenetic(BasePlugin):
                     form = RouterForm(obj=router)
                     if request_.method == "GET":
                         form.poll_log.data = bool(router.poll_log)
+                        form.poll_vpn.data = bool(router.poll_vpn)
                         form.log_to_file.data = bool(router.log_to_file)
                     if form.validate_on_submit():
                         form.populate_obj(router)
                         router.linked_object = self._normalize_linked(form.linked_object.data)
                         router.linked_method = self._normalize_linked(form.linked_method.data)
                         router.poll_log = 1 if form.poll_log.data else 0
+                        router.poll_vpn = 1 if form.poll_vpn.data else 0
                         router.log_to_file = 1 if form.log_to_file.data else 0
                         router.icon = self._icon_from_form(form)
                         sync = self._sync_live_from_form(form)
@@ -2215,6 +2220,7 @@ class Keenetic(BasePlugin):
                     "log_rules": log_rules,
                     "log_entries": log_entries,
                     "poll_log": bool(router.get("poll_log")),
+                    "poll_vpn": bool(router.get("poll_vpn")),
                 },
             )
 

@@ -94,5 +94,9 @@
     "Max in-memory journal lines per router (Log tab and MCP journal collection).": "Max in-memory journal lines per router (Log tab and MCP journal collection).",
     "On match": "일치 시",
     "Disabled": "비활성",
-    "No actions configured": "구성된 동작 없음"
+    "No actions configured": "구성된 동작 없음",
+    "Poll VPN": "VPN 조회",
+    "VPN polling disabled": "VPN 조회 비활성",
+    "and enable Poll VPN": "에서 VPN 조회를 켜세요",
+    "When Poll VPN is on, tunnels and servers are refreshed each poll cycle.": "VPN 조회가 켜져 있으면 터널과 서버가 매 조회 주기마다 갱신됩니다."
 }

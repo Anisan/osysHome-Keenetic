@@ -13,5 +13,6 @@ class RouterForm(FlaskForm):
     linked_object = StringField("Linked object")
     linked_method = StringField("Linked method", validators=[Optional()])
     poll_log = BooleanField("Poll journal", default=False)
+    poll_vpn = BooleanField("Poll VPN", default=False)
     log_to_file = BooleanField("Write journal to file", default=False)
     submit = SubmitField("Submit")

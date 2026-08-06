@@ -12,6 +12,7 @@ class Router(SurrogatePK, db.Model):
     linked_object = Column(db.String(100))
     linked_method = Column(db.String(100))
     poll_log = Column(db.Integer())
+    poll_vpn = Column(db.Integer())
     log_to_file = Column(db.Integer())
     icon = Column(db.String(100))
     sync_live = Column(db.String(255))
