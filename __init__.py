@@ -64,7 +64,7 @@ class Keenetic(BasePlugin):
         self.system = True
         self.actions = ["cycle", "search", "widget"]
         self.category = "Devices"
-        self.version = "0.14"
+        self.version = "0.15"
         self.routers = {}
         self._processing_routers = set()
         self._processing_lock = threading.Lock()
@@ -1842,10 +1842,24 @@ class Keenetic(BasePlugin):
 
     def changeObject(self, event, object_name, property_name, method_name, new_value):
         with session_scope() as session:
-            for model in (KeeneticDevice, Router, KeeneticVpn, KeeneticLogRule):
+            if property_name is None and method_name is None:
+                devices = session.query(KeeneticDevice).filter(
+                    KeeneticDevice.linked_object == object_name
+                ).all()
+                for device in devices:
+                    device.linked_object = new_value
+
+            for model in (Router, KeeneticVpn, KeeneticLogRule):
                 rows = session.query(model).filter(model.linked_object == object_name).all()
                 for row in rows:
-                    row.linked_object = new_value
+                    if new_value is None and property_name is None and method_name is None:
+                        row.linked_object = None
+                        row.linked_method = None
+                    elif property_name is None and method_name is None:
+                        row.linked_object = new_value
+                    elif method_name:
+                        if (row.linked_method or '') == method_name:
+                            row.linked_method = new_value
             session.commit()
         self._load_entity_cache()
 

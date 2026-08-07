@@ -37,11 +37,15 @@ class TestKeeneticMcpSupport(unittest.TestCase):
         self.assertTrue(routers_schema.get("properties", {}).get("password", {}).get("writeOnly"))
         self.assertTrue(routers_schema.get("properties", {}).get("model", {}).get("readOnly"))
         devices_schema = mcp_support.mcp_entity_schema("devices")
-        self.assertIn("router_id", devices_schema.get("required", []))
+        self.assertTrue(devices_schema.get("properties", {}).get("router_id", {}).get("readOnly"))
+        self.assertTrue(devices_schema.get("properties", {}).get("mac", {}).get("readOnly"))
+        self.assertEqual(devices_schema.get("required"), [])
         vpn_schema = mcp_support.mcp_entity_schema("vpn")
         self.assertIn("linked_object", vpn_schema.get("properties", {}))
         self.assertIn("linked_method", vpn_schema.get("properties", {}))
         self.assertTrue(vpn_schema.get("properties", {}).get("key", {}).get("readOnly"))
+        self.assertTrue(vpn_schema.get("properties", {}).get("router_id", {}).get("readOnly"))
+        self.assertEqual(vpn_schema.get("required"), [])
         vpn = next(item for item in mcp_support.mcp_capabilities()["collections"] if item["id"] == "vpn")
         self.assertIn("linked_method", vpn.get("writable_fields", []))
 
@@ -70,7 +74,7 @@ class TestKeeneticMcpSupport(unittest.TestCase):
         )
         self.assertTrue(result.get("ok"))
 
-    def test_validate_device_requires_router_id(self):
+    def test_validate_device_rejects_create_without_id(self):
         result = mcp_support.mcp_validate_entity("devices", {"title": "Phone"})
         self.assertFalse(result.get("ok"))
 
