@@ -64,7 +64,7 @@ class Keenetic(BasePlugin):
         self.system = True
         self.actions = ["cycle", "search", "widget"]
         self.category = "Devices"
-        self.version = "0.15"
+        self.version = "0.16"
         self.routers = {}
         self._processing_routers = set()
         self._processing_lock = threading.Lock()
@@ -874,7 +874,7 @@ class Keenetic(BasePlugin):
             now = get_now_to_utc()
             now_s = now.isoformat(sep=" ", timespec="seconds") if hasattr(now, "isoformat") else str(now)
 
-            info = api.info
+            info = api.info(include_vpn=bool(router.get("poll_vpn")))
             resources = {"cpu": None, "ram": None, "uptime": None}
             if info:
                 version = (info.get("show") or {}).get("version") or {}

@@ -227,6 +227,30 @@ class ApiRouter:
                     return True
         return False
 
+    @staticmethod
+    def _root_error_mentions(payload: Any, name: str) -> bool:
+        """True when root RCI status reports a not-found error for this show name."""
+        if not isinstance(payload, dict) or not name:
+            return False
+        needle = str(name)
+        status = payload.get("status")
+        if isinstance(status, list):
+            for item in status:
+                if not isinstance(item, dict) or item.get("status") != "error":
+                    continue
+                msg = str(item.get("message") or "")
+                if needle in msg and ApiRouter._looks_like_not_found(item):
+                    return True
+        elif isinstance(status, dict) and status.get("status") == "error":
+            msg = str(status.get("message") or "")
+            if needle in msg and ApiRouter._looks_like_not_found(status):
+                return True
+        elif payload.get("status") == "error":
+            msg = str(payload.get("message") or "")
+            if needle in msg and ApiRouter._looks_like_not_found(payload):
+                return True
+        return False
+
     def _remember_missing_show(self, name: str):
         key = str(name or "").strip()
         if key:
@@ -369,8 +393,7 @@ class ApiRouter:
     def connected_devices(self):
         return list(filter(lambda device: device.active, self.devices))
 
-    @property
-    def info(self):
+    def info(self, include_vpn: bool = True):
         show_block: Dict[str, Any] = {
             "system": {},
             "version": {},
@@ -378,17 +401,32 @@ class ApiRouter:
             "internet": {"status": {}},
             "interface": {},
         }
-        # Only request VPN shows that are not known-missing on this firmware
-        for name in ("vpn-server", "sstp-server", "l2tp-server", "wireguard-server"):
-            if name not in self._missing_show:
-                show_block[name] = {}
+        # Only request VPN-server shows when explicitly wanted and not
+        # known-missing / known-silenced on this session.
+        if include_vpn:
+            for name in ("vpn-server", "sstp-server", "l2tp-server", "wireguard-server"):
+                if name not in self._missing_show:
+                    show_block[name] = {}
         result = self._json_post("/rci/", {"show": show_block})
         if isinstance(result, dict):
             show = result.get("show") if isinstance(result.get("show"), dict) else {}
-            if isinstance(show, dict):
+            if not isinstance(show, dict):
+                show = {}
+            if include_vpn:
                 for name in ("vpn-server", "sstp-server", "l2tp-server", "wireguard-server"):
                     if name in show_block:
                         self._ingest_show_feature(name, show.get(name), requested=True)
+                # A name we asked for may be absent from `show` while the root
+                # `status` list reports "not found" for that section. Treat that
+                # as missing so it is not re-requested every poll.
+                for name in ("vpn-server", "sstp-server", "l2tp-server", "wireguard-server"):
+                    if (
+                        name in show_block
+                        and name not in show
+                        and name not in self._missing_show
+                        and self._root_error_mentions(result, name)
+                    ):
+                        self._remember_missing_show(name)
         return result
 
     def interface_stat(self, interface_name):
