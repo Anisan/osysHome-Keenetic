@@ -851,6 +851,8 @@ def mcp_upsert_entity(collection: str, payload: dict, entity_id=None) -> dict:
                 with instance._cache_lock:
                     rt = instance.router_runtime.setdefault(router_pk, {})
                     rt["log_baseline_done"] = False
+                    rt["log_seen"] = set()
+                    rt["log_entries"] = []
         return data
 
     if collection == DEVICES:

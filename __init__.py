@@ -38,6 +38,7 @@ from plugins.Keenetic.helpers import (
     live_device_fields,
     map_keenetic_log_level,
     match_log_rule,
+    log_entry_dedup_key,
     normalize_log_entries,
     normalize_mac,
     parse_vpn_interfaces,
@@ -64,7 +65,7 @@ class Keenetic(BasePlugin):
         self.system = True
         self.actions = ["cycle", "search", "widget"]
         self.category = "Devices"
-        self.version = "0.16"
+        self.version = "0.17"
         self.routers = {}
         self._processing_routers = set()
         self._processing_lock = threading.Lock()
@@ -113,7 +114,7 @@ class Keenetic(BasePlugin):
                     rt["log_entries"] = buffer[-limit:]
                 seen = rt.get("log_seen")
                 if isinstance(seen, set) and len(seen) > limit * 3:
-                    keep = {str(e.get("id")) for e in rt.get("log_entries") or [] if e.get("id")}
+                    keep = {log_entry_dedup_key(e) for e in rt.get("log_entries") or [] if log_entry_dedup_key(e)}
                     rt["log_seen"] = keep
 
     @staticmethod
@@ -948,6 +949,21 @@ class Keenetic(BasePlugin):
                 self._poll_internet(router_id, api, info, now_s)
                 self._poll_devices(router_id, api, info, now_s)
                 self._poll_vpn(router_id, api, info, now_s, router)
+                uptime_val = resources.get("uptime")
+                if uptime_val is not None:
+                    try:
+                        uptime_i = int(uptime_val)
+                    except (TypeError, ValueError):
+                        uptime_i = None
+                    if uptime_i is not None:
+                        with self._cache_lock:
+                            rt = self.router_runtime.setdefault(router_id, {})
+                            prev_uptime = rt.get("log_poll_uptime")
+                            if prev_uptime is not None and uptime_i < int(prev_uptime) - 30:
+                                rt["log_baseline_done"] = False
+                                rt["log_seen"] = set()
+                                rt["log_entries"] = []
+                            rt["log_poll_uptime"] = uptime_i
                 self._poll_log(router_id, api, router)
             else:
                 with self._cache_lock:
@@ -1365,10 +1381,10 @@ class Keenetic(BasePlugin):
 
             new_entries: List[dict] = []
             for entry in entries:
-                eid = str(entry.get("id") or "")
-                if not eid or eid in seen:
+                dedup_key = log_entry_dedup_key(entry)
+                if not dedup_key or dedup_key in seen:
                     continue
-                seen.add(eid)
+                seen.add(dedup_key)
                 new_entries.append(entry)
 
             if not baseline_done:
@@ -1376,7 +1392,7 @@ class Keenetic(BasePlugin):
                 ordered = list(reversed(entries)) if entries else []
                 buf_limit = self._journal_buffer_limit()
                 buffer = ordered[-buf_limit:]
-                seen = {str(e.get("id")) for e in entries if e.get("id")}
+                seen = {log_entry_dedup_key(e) for e in entries if log_entry_dedup_key(e)}
                 with self._cache_lock:
                     rt = self.router_runtime.setdefault(router_id, {})
                     rt["log_entries"] = buffer
@@ -1392,11 +1408,9 @@ class Keenetic(BasePlugin):
             if not new_entries:
                 return
 
-            # Keenetic snapshot order is typically oldest→newest; notify in that order
+            buf_limit = self._journal_buffer_limit()
             for entry in new_entries:
                 buffer.append(entry)
-                self._apply_log_rules(router, entry)
-            buf_limit = self._journal_buffer_limit()
             if len(buffer) > buf_limit:
                 buffer = buffer[-buf_limit:]
 
@@ -1404,10 +1418,14 @@ class Keenetic(BasePlugin):
                 rt = self.router_runtime.setdefault(router_id, {})
                 rt["log_entries"] = buffer
                 rt["log_seen"] = seen
-                # Cap seen set so it does not grow forever
                 if len(seen) > buf_limit * 3:
-                    keep = {str(e.get("id")) for e in buffer if e.get("id")}
+                    keep = {log_entry_dedup_key(e) for e in buffer if log_entry_dedup_key(e)}
                     rt["log_seen"] = keep
+                    seen = keep
+
+            # Keenetic snapshot order is typically oldest→newest; notify in that order
+            for entry in new_entries:
+                self._apply_log_rules(router, entry)
 
             self.sendDataToWebsocket(
                 "appendLog",
@@ -2139,6 +2157,8 @@ class Keenetic(BasePlugin):
                             with self._cache_lock:
                                 rt = self.router_runtime.setdefault(int(router.id), {})
                                 rt["log_baseline_done"] = False
+                                rt["log_seen"] = set()
+                                rt["log_entries"] = []
                         return redirect(f"?router={router.id}")
                     sync_live = resolve_sync_live(router.sync_live, router.linked_object, ROUTER_SYNC_DEFAULT)
                     return self.render(

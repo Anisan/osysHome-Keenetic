@@ -461,6 +461,18 @@ def _log_fingerprint(time_v: Any, level: Any, message: Any, facility: Any = "") 
     return f"{time_v}|{level}|{facility}|{message}"
 
 
+def log_entry_dedup_key(entry: dict) -> str:
+    """Stable dedup key for journal entries (content-based, not router id)."""
+    row = entry or {}
+    time_v = str(row.get("time") or "").strip()
+    level = str(row.get("level") or "").strip()
+    facility = str(row.get("facility") or "").strip()
+    message = str(row.get("message") or "").strip()
+    if not message:
+        return ""
+    return _log_fingerprint(time_v, level, message, facility)
+
+
 def _unwrap_log_message(message: Any) -> tuple:
     """Keenetic often nests {level,label,message,repeated} inside message."""
     level = ""
@@ -538,7 +550,7 @@ def normalize_log_entries(raw: Any) -> List[dict]:
             if not message:
                 continue
             level = map_keenetic_log_level(level, label)
-            eid = str(key)
+            eid = _log_fingerprint("", level, message, facility)
             entries.append(
                 {
                     "id": eid,
@@ -568,12 +580,14 @@ def normalize_log_entries(raw: Any) -> List[dict]:
         facility = nest_facility or str(top_facility or "")
         if not message and not time_v:
             continue
-        eid = str(row.get("id") or row.get("uid") or key or "").strip()
-        if not eid or (eid.isdigit() and len(eid) < 3):
-            eid = _log_fingerprint(time_v, level, message, facility)
+        router_id = str(row.get("id") or row.get("uid") or key or "").strip()
+        eid = _log_fingerprint(time_v, level, message, facility)
+        if not eid and router_id:
+            eid = router_id
         entries.append(
             {
                 "id": eid,
+                "router_log_id": router_id,
                 "time": str(time_v) if time_v is not None else "",
                 "level": level,
                 "label": label,
