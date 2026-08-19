@@ -5,9 +5,9 @@
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="/admin/Keenetic">{{ _('Keenetic')}}</a></li>
 {% if router_id %}
-<li class="breadcrumb-item"><a href="/admin/Keenetic?router={{ router_id }}#keenetic-devices">{{ router_title or _('Devices') }}</a></li>
+<li class="breadcrumb-item"><a href="/admin/Keenetic?router={{ router_id }}#keenetic-vpn">{{ router_title or _('VPN') }}</a></li>
 {% endif %}
-<li class="breadcrumb-item active" aria-current="page">{{ form.title.data or _('Edit') }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ form.title.data or _('VPN') }}</li>
 {% endblock %}
 {% block module %}
 
@@ -30,16 +30,19 @@
         <label class="form-label">{{ _('Title') }}</label>
         {{ form.title(class="form-control") }}
     </div>
-    <div class="mb-3">
-        {{ form.ip.label(class="form-label") }}
-        {{ form.ip(class="form-control")}}
-    </div>
     {{ icon_picker_field('icon', label=_('Icon'), value=form.icon.data, name='icon') }}
-    {{ render_linked_select(form.linked_object, None, None) }}
+    {{ render_linked_select(form.linked_object, None, form.linked_method) }}
+    <div class="form-text mb-3">
+      {{ _('For VPN servers: linked method is called on client connect/disconnect with USER, IP, EVENT; disconnect also includes RXBYTES/TXBYTES.') }}
+    </div>
     <div class="mb-3">
         <label class="form-label">{{ _('Sync live properties') }}</label>
         <div class="d-flex flex-wrap gap-3">
-            {% set options = ['online','ip','signal_strength','rxbytes','txbytes','uptime'] if not is_internet else ['online','ip','rxbytes','txbytes'] %}
+            {% if role == 'server' %}
+              {% set options = ['online','clients_online','last_event','last_user','last_ip','last_rxbytes','last_txbytes','last_uptime'] %}
+            {% else %}
+              {% set options = ['online','ip'] %}
+            {% endif %}
             {% for opt in options %}
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="sync_live" value="{{ opt }}" id="sync_{{ opt }}" {% if opt in sync_live %}checked{% endif %}>
@@ -50,9 +53,6 @@
     </div>
     <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
     <a href="Keenetic?router={{router_id}}" class="btn btn-secondary">{{ _('Cancel')}}</a>
-    {% if device_id and not is_internet %}
-    <a href="Keenetic?op=wake&device={{device_id}}" class="btn btn-outline-secondary">{{ _('Wake')}}</a>
-    {% endif %}
 </form>
 {{ icon_picker_modal() }}
 {{ icon_picker_assets() }}

@@ -1,75 +1,174 @@
 {% extends "layouts/module_admin.html" %}
+{% block stylesheets %}
+{{ super() }}
+<link rel="stylesheet" href="{{ config.ASSETS_ROOT }}/plugins/datatables/css/dataTables.bootstrap5.min.css">
+<style>
+    .keenetic-page-header .keenetic-header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    @media (max-width: 767.98px) {
+        .keenetic-page-header .keenetic-header-actions .btn,
+        .keenetic-page-header .keenetic-header-actions > a {
+            flex: 1 1 calc(50% - 0.25rem);
+        }
+    }
+    @media (max-width: 575.98px) {
+        .keenetic-page-header h1 {
+            font-size: 1.25rem;
+        }
+        .keenetic-page-header p {
+            font-size: 0.875rem;
+        }
+    }
+</style>
+{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Keenetic">Keenetic</a></li>
+<li class="breadcrumb-item active" aria-current="page"><a href="/admin/Keenetic">{{ _('Keenetic')}}</a></li>
 {% endblock %}
 {% block module %}
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
-  <i class="fas fa-cog me-2"></i>Settings
-</button>
-<a href="?op=add" class="btn btn-primary" title="Add"><i class="fas fa-plus me-2"></i>Add router</a>
-<div class="table-responsive">
-  <table class="table table-hover table-sm">
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3 px-2 keenetic-page-header">
+    <img src="/Keenetic/static/Keenetic.png" alt="Logo" class="img-fluid flex-shrink-0" style="max-width: 50px;">
+    <div class="flex-grow-1 min-w-0">
+        <h1 class="h3 mb-0 mt-2">{{ _('Keenetic Integration') }}</h1>
+        <p class="text-muted mb-0">{{ _('Manage Keenetic routers and devices') }}</p>
+    </div>
+    <div class="keenetic-header-actions">
+        <a href="?op=add" class="btn btn-primary" title="Add">
+            <i class="fas fa-plus"></i> {{ _('Add router')}}
+        </a>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+            <i class="fas fa-cog"></i> {{ _('Settings')}}
+        </button>
+    </div>
+</div>
+<div data-async-loading>
+  <div class="table-responsive">
+  <table id="keenetic-routers-table"
+         class="table table-hover table-sm align-middle text-start w-100">
       <thead>
           <tr>
-              <th>Title</th>
-              <th>Model</th>
-              <th>IP</th>
-              <th>Online</th>
-              <th>Updated</th>
-              <th></th>
+              <th class="text-start"></th>
+              <th class="text-start">{{ _('Title')}}</th>
+              <th class="text-start">{{ _('Model')}}</th>
+              <th class="text-start">{{ _('Firmware')}}</th>
+              <th class="text-start">IP</th>
+              <th class="text-start">CPU</th>
+              <th class="text-start">RAM</th>
+              <th class="text-start">{{ _('Uptime')}}</th>
+              <th class="text-start">{{ _('Online')}}</th>
+              <th class="text-start">{{ _('Updated')}}</th>
+              <th class="text-start"></th>
           </tr>
       </thead>
       <tbody>
           {% for router in routers %}
-          <tr>
-              <td class="py-1">{{ router.title }}</td>
-              <td class="py-1">{{ router.model }}</td>
-              <td class="py-1">{{ router.ip }}</td>
-              <td class="py-1">                    
-                {%if router.online%}
-                <span class="badge bg-success">Online</span>
-                {%else%}
-                <span class="badge bg-danger">Offline</span>
-                {%endif%}</td>
-              <td class="py-1" id="dev{{router.id}}_updated">
-                  {{router.updated}}
+          <tr data-keenetic-router="{{ router.id }}">
+              <td class="text-start">
+                {% if router.icon %}
+                  <span class="d-inline-flex align-items-center justify-content-center lh-1 fs-4">
+                  {% if ':' in router.icon and ' ' not in router.icon %}
+                    <iconify-icon icon="{{ router.icon }}"></iconify-icon>
+                  {% else %}
+                    <i class="{{ router.icon }}"></i>
+                  {% endif %}
+                  </span>
+                {% endif %}
               </td>
-              <td  class="py-1" width="1%" nowrap>
-                  <div>
-                    <a href="?router={{router.id}}" class="btn btn-secondary" title="Devices"><i class="feather icon-align-justify"></i></a>
-                    <a href="?op=edit&router={{router.id}}" class="btn btn-secondary" title="Edit"><i class="feather icon-edit"></i></a>
-                    <a href="?op=delete&router={{router.id}}" onClick="return confirm('Are you sure? Please confirm.')" class="btn btn-danger" title="Delete"><i class="feather icon-trash"></i></a>
+              <td class="text-start"><a href="?router={{ router.id }}" title="{{ _('Devices') }}">{{ router.title }}</a></td>
+              <td class="text-start">{{ router.model }}</td>
+              <td class="text-start">
+                <span data-field="firmware_version">{{ router.firmware_version or '' }}</span>
+                <span class="badge text-bg-warning ms-1"
+                      data-field="update_available"
+                      data-available="{{ 1 if router.update_available else 0 }}"
+                      {% if not router.update_available %}style="display:none"{% endif %}>
+                  {{ _('Update available')}}{% if router.update_version %}: {{ router.update_version }}{% endif %}
+                </span>
+                <a href="?op=apply_update&router={{ router.id }}"
+                   class="btn btn-sm btn-warning ms-1"
+                   data-field="apply_update"
+                   {% if not router.update_available %}style="display:none"{% endif %}
+                   onClick="return confirm('{{ _('Apply firmware update?')}}')">{{ _('Apply update')}}</a>
+              </td>
+              <td class="text-start">{{ router.ip }}</td>
+              <td class="text-start text-nowrap" data-field="cpu">{% if router.cpu is not none %}{{ router.cpu }}%{% endif %}</td>
+              <td class="text-start text-nowrap" data-field="ram">{% if router.ram is not none %}{{ router.ram }}%{% endif %}</td>
+              <td class="text-start text-nowrap" data-field="uptime">{% if router.uptime %}{{ router.uptime }}{% endif %}</td>
+              <td class="text-start">
+                {% if router.online %}
+                <span class="badge text-bg-success" data-field="online">{{ _('Online')}}</span>
+                {% else %}
+                <span class="badge text-bg-danger" data-field="online">{{ _('Offline')}}</span>
+                {% endif %}
+              </td>
+              <td class="text-start" data-field="updated">{{ router.updated }}</td>
+              <td class="text-start" width="1%" nowrap>
+                  <div class="btn-group">
+                    <a href="?router={{router.id}}" class="btn btn-secondary" title="{{ _('Devices')}}"><i class="feather icon-align-justify"></i></a>
+                    <a href="?op=check_firmware&router={{router.id}}" class="btn btn-secondary" title="{{ _('Check firmware')}}"><i class="fas fa-sync"></i></a>
+                    <a href="?op=reboot&router={{router.id}}" onClick="return confirm('{{ _('Reboot router?')}}')" class="btn btn-warning" title="{{ _('Reboot')}}"><i class="fas fa-power-off"></i></a>
+                    <a href="?op=edit&router={{router.id}}" class="btn btn-secondary" title="{{ _('Edit')}}"><i class="feather icon-edit"></i></a>
+                    <a href="?op=delete&router={{router.id}}" onClick="return confirm('Are you sure? Please confirm.')" class="btn btn-danger" title="{{ _('Delete')}}"><i class="feather icon-trash"></i></a>
                   </div>
               </td>
           </tr>
           {% endfor %}
       </tbody>
   </table>
+  </div>
 </div>
 
-<!-- Модальное окно с настройками -->
 <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
   <div class="modal-dialog">
       <div class="modal-content">
-          <form  method="POST">
+          <form method="POST">
           <div class="modal-header">
-              <h5 class="modal-title" id="exampleModalLabel">Settings</h5>
+              <h5 class="modal-title" id="exampleModalLabel">{{ _('Settings')}}</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-              <!-- Поля формы -->
               {{ form.hidden_tag() }}
               <div class="mb-3">
-                  {{ form.interval.label(class="form-label") }}
+                  <label class="form-label">{{ _('Update interval') }}</label>
                   {{ form.interval(class="form-control") }}
               </div>
+              <div class="mb-3">
+                  <label class="form-label">{{ _('Firmware check interval') }}</label>
+                  {{ form.firmware_check_interval(class="form-control") }}
+              </div>
+              <div class="mb-3">
+                  <label class="form-label">{{ _('Journal buffer size') }}</label>
+                  {{ form.journal_buffer_limit(class="form-control") }}
+              </div>
+              <p class="text-muted small mb-0">{{ _('Max in-memory journal lines per router (Log tab and MCP journal collection).') }}</p>
           </div>
           <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-              <button type="submit" class="btn btn-primary">Submit</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close')}}</button>
+              <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
           </div>
           </form>
       </div>
   </div>
 </div>
+<script>
+window.KeeneticLiveI18n = {
+  online: {{ _('Online')|tojson }},
+  offline: {{ _('Offline')|tojson }},
+  update_available: {{ _('Update available')|tojson }}
+};
+</script>
+<script src="{{ config.ASSETS_ROOT }}/plugins/datatables/js/dataTables.min.js"></script>
+<script src="{{ config.ASSETS_ROOT }}/plugins/datatables/js/dataTables.bootstrap5.min.js"></script>
+<script src="/Keenetic/static/js/datatables.js"></script>
+<script src="/Keenetic/static/js/live.js"></script>
+<script>
+KeeneticDt.init("#keenetic-routers-table", {
+  order: [[1, "asc"]],
+  columnDefs: [{ orderable: false, targets: [0, -1] }],
+  stateSave: true,
+  stateDuration: 0,
+});
+</script>
 {% endblock %}

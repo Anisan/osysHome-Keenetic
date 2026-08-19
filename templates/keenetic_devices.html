@@ -1,51 +1,495 @@
 {% extends "layouts/module_admin.html" %}
-{% from "macros/code_editor.html" import render_editor %}
+{% block stylesheets %}
+<link rel="stylesheet" href="{{ config.ASSETS_ROOT }}/plugins/datatables/css/dataTables.bootstrap5.min.css">
+{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Keenetic">Keenetic</a></li>
-<li class="breadcrumb-item">{{router.title}}</li>
+<li class="breadcrumb-item"><a href="/admin/Keenetic">{{ _('Keenetic')}}</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ router.title }}</li>
 {% endblock %}
 {% block module %}
-<h3>{{ router.title }}</h3>
-<div class="table-responsive">
-    <table class="table table-hover table-sm">
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  <h3 class="mb-0 me-auto d-flex align-items-center gap-2">
+    {% if router.icon %}
+      <span class="d-inline-flex align-items-center justify-content-center lh-1 fs-4">
+      {% if ':' in router.icon and ' ' not in router.icon %}
+        <iconify-icon icon="{{ router.icon }}"></iconify-icon>
+      {% else %}
+        <i class="{{ router.icon }}"></i>
+      {% endif %}
+      </span>
+    {% endif %}
+    {{ router.title }}
+  </h3>
+  {% if router.firmware_version %}
+  <span class="badge text-bg-secondary" data-keenetic-router-header="{{ router.id }}" data-field="firmware_version">{{ router.firmware_version }}</span>
+  {% endif %}
+  {% if router.update_available %}
+  <span class="badge text-bg-warning">{{ _('Update available')}}: {{ router.update_version }}</span>
+  <a href="?op=apply_update&router={{router.id}}" class="btn btn-sm btn-warning" onClick="return confirm('{{ _('Apply firmware update?')}}')">{{ _('Apply update')}}</a>
+  {% endif %}
+  <a href="?op=check_firmware&router={{router.id}}" class="btn btn-sm btn-secondary">{{ _('Check firmware')}}</a>
+  <a href="?op=reboot&router={{router.id}}" class="btn btn-sm btn-warning" onClick="return confirm('{{ _('Reboot router?')}}')">{{ _('Reboot')}}</a>
+  <a href="?op=edit&router={{router.id}}" class="btn btn-sm btn-secondary" title="{{ _('Settings') }}"><i class="fas fa-cog me-1"></i>{{ _('Settings') }}</a>
+</div>
+
+<ul class="nav nav-tabs mb-3" id="keeneticRouterTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="keenetic-devices-tab" data-bs-toggle="tab" data-bs-target="#keenetic-devices" type="button" role="tab" aria-controls="keenetic-devices" aria-selected="true">
+      {{ _('Devices')}}
+      <span class="badge text-bg-secondary ms-1">{{ devices|length }}</span>
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="keenetic-vpn-tab" data-bs-toggle="tab" data-bs-target="#keenetic-vpn" type="button" role="tab" aria-controls="keenetic-vpn" aria-selected="false">
+      {{ _('VPN')}}
+      <span class="badge text-bg-secondary ms-1">{{ vpns|length }}</span>
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="keenetic-log-tab" data-bs-toggle="tab" data-bs-target="#keenetic-log" type="button" role="tab" aria-controls="keenetic-log" aria-selected="false">
+      {{ _('Log')}}
+      {% if log_entries %}
+      <span class="badge text-bg-secondary ms-1" data-field="log-count">{{ log_entries|length }}</span>
+      {% else %}
+      <span class="badge text-bg-secondary ms-1" data-field="log-count" style="display:none">0</span>
+      {% endif %}
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content" id="keeneticRouterTabsContent">
+  <div class="tab-pane fade show active" id="keenetic-devices" role="tabpanel" aria-labelledby="keenetic-devices-tab" tabindex="0">
+    <div data-async-loading>
+    <div class="table-responsive">
+        <table id="keenetic-devices-table"
+               class="table table-hover table-sm align-middle text-start w-100">
+            <thead>
+                <tr>
+                    <th class="text-start"></th>
+                    <th class="text-start">{{ _('Title')}}</th>
+                    <th class="text-start">IP</th>
+                    <th class="text-start">MAC</th>
+                    <th class="text-start">SSID</th>
+                    <th class="text-start">{{ _('Signal')}}</th>
+                    <th class="text-start">{{ _('Uptime')}}</th>
+                    <th class="text-start">{{ _('Traffic')}}</th>
+                    <th class="text-start">{{ _('Online')}}</th>
+                    <th class="text-start">{{ _('Linked object')}}</th>
+                    <th class="text-start">{{ _('Updated')}}</th>
+                    <th class="text-start"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for device in devices %}
+                {% set access = (device.access or '')|lower %}
+                {% set denied = access in ('deny', 'denied', 'false', '0') %}
+                {% set row_bg = 'bg-warning-subtle' if denied else '' %}
+                <tr data-keenetic-device="{{ device.id }}"
+                    data-access="{{ access }}">
+                    <td class="text-start {{ row_bg }}">
+                      {% if device.icon %}
+                        <span class="d-inline-flex align-items-center justify-content-center lh-1 fs-4">
+                        {% if ':' in device.icon and ' ' not in device.icon %}
+                          <iconify-icon icon="{{ device.icon }}"></iconify-icon>
+                        {% else %}
+                          <i class="{{ device.icon }}"></i>
+                        {% endif %}
+                        </span>
+                      {% endif %}
+                    </td>
+                    <td class="text-start {{ row_bg }}">
+                      {{ device.title }}
+                      {% if device.hostname %}<div class="small text-muted">{{ device.hostname }}</div>{% endif %}
+                    </td>
+                    <td class="text-start {{ row_bg }}" data-field="ip">{{ device.ip }}</td>
+                    <td class="text-start {{ row_bg }}">{{ device.mac }}</td>
+                    <td class="text-start {{ row_bg }}">{{ device.ssid or device.interface or '' }}</td>
+                    <td class="text-start {{ row_bg }}" data-field="rssi">{% if device.rssi is not none %}{{ device.rssi }}{% endif %}</td>
+                    <td class="text-start text-nowrap {{ row_bg }}" data-field="uptime">
+                      {% if device.uptime %}{{ device.uptime }}{% endif %}
+                    </td>
+                    <td class="text-start text-nowrap small {{ row_bg }}" data-field="traffic"
+                        data-rx="{{ device.rxbytes or 0 }}"
+                        data-tx="{{ device.txbytes or 0 }}">
+                      ↓ {{ device.rxbytes or 0 }} ↑ {{ device.txbytes or 0 }}
+                    </td>
+                    <td class="text-start {{ row_bg }}">
+                      {% if device.online %}
+                      <span class="badge text-bg-success" data-field="online">{{ _('Online')}}</span>
+                      {% else %}
+                      <span class="badge text-bg-danger" data-field="online">{{ _('Offline')}}</span>
+                      {% endif %}
+                      <span class="badge text-bg-warning ms-1" data-field="access-denied"
+                            {% if not denied %}style="display:none"{% endif %}>{{ _('Internet denied')}}</span>
+                    </td>
+                    <td class="text-start {{ row_bg }}">
+                        {% if device.linked_object %}
+                        <a href="/admin/Objects?view=object&object={{ device.linked_object }}&tab=properties">{{ device.linked_object }}</a>
+                        {% endif %}
+                    </td>
+                    <td class="text-start {{ row_bg }}" data-field="updated">{{ device.updated }}</td>
+                    <td class="text-start {{ row_bg }}" width="1%" nowrap>
+                        <div class="btn-group" data-field="access-actions">
+                            {% if device.mac != '0.0.0.0.0.0' %}
+                            <a href="?op=wake&device={{device.id}}" class="btn btn-secondary" title="{{ _('Wake')}}"><i class="fas fa-bell"></i></a>
+                            <a href="?op=permit&device={{device.id}}"
+                               class="btn btn-success"
+                               data-access-action="permit"
+                               title="{{ _('Permit')}}"
+                               {% if not denied %}style="display:none"{% endif %}><i class="fas fa-check"></i></a>
+                            <a href="?op=deny&device={{device.id}}"
+                               class="btn btn-warning"
+                               data-access-action="deny"
+                               title="{{ _('Deny')}}"
+                               {% if denied %}style="display:none"{% endif %}><i class="fas fa-ban"></i></a>
+                            {% endif %}
+                            <a href="?op=edit&device={{device.id}}" class="btn btn-secondary" title="{{ _('Edit')}}"><i class="feather icon-edit"></i></a>
+                            <a href="?op=delete&device={{device.id}}" onClick="return confirm('Are you sure? Please confirm.')" class="btn btn-danger" title="{{ _('Delete')}}"><i class="feather icon-trash"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="keenetic-vpn" role="tabpanel" aria-labelledby="keenetic-vpn-tab" tabindex="0">
+    {% if not poll_vpn %}
+    <div class="alert alert-secondary" data-field="vpn-disabled">
+      {{ _('VPN polling disabled')}} —
+      <a href="?op=edit&router={{ router.id }}">{{ _('Edit')}}</a>
+      {{ _('and enable Poll VPN')}}.
+    </div>
+    {% endif %}
+    <div data-async-loading>
+    <div class="table-responsive">
+        <table id="keenetic-vpn-table"
+               class="table table-hover table-sm align-middle text-start w-100">
+            <thead>
+                <tr>
+                    <th class="text-start"></th>
+                    <th class="text-start">{{ _('Title')}}</th>
+                    <th class="text-start">{{ _('Type')}}</th>
+                    <th class="text-start">{{ _('Role')}}</th>
+                    <th class="text-start">IP</th>
+                    <th class="text-start">{{ _('Online')}}</th>
+                    <th class="text-start">{{ _('Clients')}}</th>
+                    <th class="text-start">{{ _('Linked object')}}</th>
+                    <th class="text-start">{{ _('Updated')}}</th>
+                    <th class="text-start"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vpn in vpns %}
+                <tr data-keenetic-vpn="{{ vpn.id }}" data-role="{{ vpn.role }}">
+                    <td class="text-start">
+                      {% if vpn.icon %}
+                        <span class="d-inline-flex align-items-center justify-content-center lh-1 fs-4">
+                        {% if ':' in vpn.icon and ' ' not in vpn.icon %}
+                          <iconify-icon icon="{{ vpn.icon }}"></iconify-icon>
+                        {% else %}
+                          <i class="{{ vpn.icon }}"></i>
+                        {% endif %}
+                        </span>
+                      {% endif %}
+                    </td>
+                    <td class="text-start">{{ vpn.title }}</td>
+                    <td class="text-start">{{ vpn.vpn_type }}</td>
+                    <td class="text-start">{{ vpn.role }}</td>
+                    <td class="text-start" data-field="ip">{{ vpn.ip or vpn.address or '' }}</td>
+                    <td class="text-start">
+                      {% if vpn.online %}
+                      <span class="badge text-bg-success" data-field="online">{{ _('Online')}}</span>
+                      {% else %}
+                      <span class="badge text-bg-danger" data-field="online">{{ _('Offline')}}</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-start" data-field="clients_online">
+                      {% if vpn.role == 'server' %}
+                        <div class="table-responsive" data-field="sessions-wrap">
+                          <table class="table table-sm table-borderless table-striped mb-0 align-middle text-start text-nowrap">
+                            <thead>
+                              <tr class="small text-muted">
+                                <th class="text-start">{{ _('User')}}</th>
+                                <th class="text-start">{{ _('VPN IP')}}</th>
+                                <th class="text-start">{{ _('Remote IP')}}</th>
+                                <th class="text-start">{{ _('Traffic')}}</th>
+                                <th class="text-start">{{ _('Uptime')}}</th>
+                                <th class="text-start"></th>
+                              </tr>
+                            </thead>
+                            <tbody data-field="sessions-body">
+                              {% for s in vpn.sessions or [] %}
+                              <tr data-session-id="{{ s.session_id }}">
+                                <td class="text-start">{{ s.name or '—' }}</td>
+                                <td class="text-start">{{ s.address or '—' }}</td>
+                                <td class="text-start">{{ s.remote or '—' }}</td>
+                                <td class="text-start text-nowrap small" data-rx="{{ s.rxbytes or 0 }}" data-tx="{{ s.txbytes or 0 }}" data-field="session-traffic">↓ {{ s.rxbytes or 0 }} ↑ {{ s.txbytes or 0 }}</td>
+                                <td class="text-start text-nowrap" data-field="session-uptime">{{ s.uptime or '' }}</td>
+                                <td class="text-start" width="1%" nowrap>
+                                  {% if s.session_id is not none %}
+                                  <a href="?op=vpn_kick&vpn={{vpn.id}}&session={{s.session_id}}"
+                                     class="btn btn-sm btn-outline-danger"
+                                     title="{{ _('Disconnect client')}}"
+                                     onClick="return confirm('{{ _('Disconnect this VPN client?')}}')">
+                                    <i class="fas fa-user-slash"></i>
+                                  </a>
+                                  {% endif %}
+                                </td>
+                              </tr>
+                              {% else %}
+                              <tr class="keenetic-sessions-empty"><td colspan="6" class="text-start small text-muted">{{ _('No active clients')}}</td></tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                    <td class="text-start">
+                        {% if vpn.linked_object %}
+                        <a href="/admin/Objects?view=object&object={{ vpn.linked_object }}&tab=properties">{{ vpn.linked_object }}</a>
+                        {% endif %}
+                    </td>
+                    <td class="text-start" data-field="updated">{{ vpn.updated }}</td>
+                    <td class="text-start" width="1%" nowrap>
+                        <div class="btn-group">
+                            {% if vpn.role == 'server' %}
+                            <a href="?op=vpn_enable&vpn={{vpn.id}}" class="btn btn-success" title="{{ _('Enable')}}"><i class="fas fa-toggle-on"></i></a>
+                            <a href="?op=vpn_disable&vpn={{vpn.id}}" class="btn btn-warning" title="{{ _('Disable')}}" onClick="return confirm('{{ _('Disable VPN server?')}}')"><i class="fas fa-toggle-off"></i></a>
+                            {% else %}
+                            <a href="?op=vpn_connect&vpn={{vpn.id}}" class="btn btn-success" title="{{ _('Connect')}}"><i class="fas fa-plug"></i></a>
+                            <a href="?op=vpn_disconnect&vpn={{vpn.id}}" class="btn btn-warning" title="{{ _('Disconnect')}}"><i class="fas fa-unlink"></i></a>
+                            {% endif %}
+                            <a href="?op=edit&vpn={{vpn.id}}" class="btn btn-secondary" title="{{ _('Edit')}}"><i class="feather icon-edit"></i></a>
+                            <a href="?op=delete&vpn={{vpn.id}}" onClick="return confirm('Are you sure? Please confirm.')" class="btn btn-danger" title="{{ _('Delete')}}"><i class="feather icon-trash"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="keenetic-log" role="tabpanel" aria-labelledby="keenetic-log-tab" tabindex="0"
+       data-keenetic-log-router="{{ router.id }}" data-log-limit="200">
+    {% if not poll_log %}
+    <div class="alert alert-secondary" data-field="log-disabled">
+      {{ _('Journal disabled')}} —
+      <a href="?op=edit&router={{ router.id }}">{{ _('Edit')}}</a>
+      {{ _('and enable Poll journal')}}.
+    </div>
+    {% endif %}
+
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+      <h5 class="mb-0 me-auto">{{ _('Log rules') }}</h5>
+      <a href="?op=add&log_rule&router={{ router.id }}" class="btn btn-sm btn-primary">{{ _('Add log rule') }}</a>
+    </div>
+    <div class="table-responsive mb-4">
+      <table class="table table-hover table-sm align-middle text-start w-100">
         <thead>
-            <tr>
-                <th>Title</th>
-                <th>IP</th>
-                <th>MAC</th>
-                <th>Online</th>
-                <th>Linked object</th>
-                <th>Updated</th>
-                <th></th>
-            </tr>
+          <tr>
+            <th class="text-start">{{ _('Title') }}</th>
+            <th class="text-start">{{ _('Pattern (regexp)') }}</th>
+            <th class="text-start">{{ _('On match') }}</th>
+            <th class="text-start">{{ _('Active') }}</th>
+            <th class="text-start" width="1%"></th>
+          </tr>
         </thead>
         <tbody>
-            {% for device in devices %}
-            <tr>
-                <td class="py-1">{{ device.title }}</td>
-                <td class="py-1">{{ device.ip }}</td>
-                <td class="py-1">{{ device.mac }}</td>
-                <td class="py-1">                    
-                  {%if device.online%}
-                  <span class="badge bg-success">Online</span>
-                  {%else%}
-                  <span class="badge bg-danger">Offline</span>
-                  {%endif%}
-                </td>
-                <td class="py-1">{{ device.linked_object }}</td>
-                <td class="py-1" id="dev{{router.id}}_updated">
-                    {{device.updated}}
-                </td>
-                <td  class="py-1" width="1%" nowrap>
-                    <div>
-                        <a href="?op=edit&device={{device.id}}" class="btn btn-secondary" title="Edit"><i class="feather icon-edit"></i></a>
-                        <a href="?op=delete&device={{device.id}}" onClick="return confirm('Are you sure? Please confirm.')" class="btn btn-danger" title="Delete"><i class="feather icon-trash"></i></a>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
+          {% for rule in log_rules|default([]) %}
+          {% set has_file = rule.write_to_file %}
+          {% set has_method = rule.linked_object and rule.linked_method %}
+          {% set rule_live = rule.active and (has_file or has_method) %}
+          {% set row_bg = 'bg-success-subtle' if rule_live else ('bg-info-subtle' if rule.active else '') %}
+          <tr>
+            <td class="text-start fw-medium {{ row_bg }}">{{ rule.title }}</td>
+            <td class="text-start {{ row_bg }}"><code class="small">{{ rule.pattern }}</code></td>
+            <td class="text-start {{ row_bg }}">
+              <div class="d-flex flex-wrap gap-1 align-items-center">
+                {% if has_file %}
+                  {% if rule.active and router.log_to_file %}
+                  <span class="badge text-bg-success">
+                    <i class="fas fa-file-alt me-1"></i>{{ _('Write to journal file') }}
+                  </span>
+                  {% elif rule.active %}
+                  <span class="badge text-bg-warning"
+                        title="{{ _('Master switch for logs/KeeneticJournal_<id>.log. If off, rules with Write to journal file do nothing.') }}">
+                    <i class="fas fa-file-alt me-1"></i>{{ _('Write to journal file') }}
+                  </span>
+                  {% else %}
+                  <span class="badge text-bg-secondary">
+                    <i class="fas fa-file-alt me-1"></i>{{ _('Write to journal file') }}
+                  </span>
+                  {% endif %}
+                {% endif %}
+                {% if rule.linked_object or rule.linked_method %}
+                  {% if has_method %}
+                    {% if rule.active %}
+                    <span class="badge text-bg-info">
+                      <i class="fas fa-bolt me-1"></i>
+                      <a href="/admin/Objects?view=object&object={{ rule.linked_object }}&tab=methods" class="link-light">
+                        {{ rule.linked_object }}.{{ rule.linked_method }}
+                      </a>
+                    </span>
+                    {% else %}
+                    <span class="badge text-bg-secondary">
+                      <i class="fas fa-bolt me-1"></i>{{ rule.linked_object }}.{{ rule.linked_method }}
+                    </span>
+                    {% endif %}
+                  {% else %}
+                  <span class="badge text-bg-warning" title="{{ _('Linked method') }}">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    {% if rule.linked_method %}?.{{ rule.linked_method }}{% else %}?{% endif %}
+                  </span>
+                  {% endif %}
+                {% endif %}
+                {% if not has_file and not has_method %}
+                <span class="text-muted small">{{ _('No actions configured') }}</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="text-start {{ row_bg }}">
+              {% if rule.active %}
+              <span class="badge text-bg-success"><i class="fas fa-toggle-on me-1"></i>{{ _('Active') }}</span>
+              {% else %}
+              <span class="badge text-bg-secondary"><i class="fas fa-toggle-off me-1"></i>{{ _('Disabled') }}</span>
+              {% endif %}
+            </td>
+            <td class="text-start {{ row_bg }}" nowrap>
+              <div class="btn-group">
+                <a href="?op=edit&log_rule={{ rule.id }}" class="btn btn-secondary" title="{{ _('Edit')}}"><i class="feather icon-edit"></i></a>
+                <a href="?op=delete&log_rule={{ rule.id }}" onClick="return confirm('Are you sure? Please confirm.')" class="btn btn-danger" title="{{ _('Delete')}}"><i class="feather icon-trash"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-start text-muted">{{ _('No log rules — all new lines use router write/method settings.') }}</td>
+          </tr>
+          {% endfor %}
         </tbody>
-    </table>
+      </table>
+    </div>
+
+    <div data-async-loading>
+    <div class="table-responsive">
+      <table id="keenetic-log-table"
+             class="table table-hover table-sm align-middle text-start w-100">
+        <thead>
+          <tr>
+            <th class="text-start">{{ _('Time')}}</th>
+            <th class="text-start">{{ _('Level')}}</th>
+            <th class="text-start">{{ _('Facility')}}</th>
+            <th class="text-start">{{ _('Message')}}</th>
+          </tr>
+        </thead>
+        <tbody data-field="log-body">
+          {% for e in log_entries|reverse %}
+            {% set lvl = (e.level or '')|lower %}
+            {% if lvl in ('error', 'critical', 'fatal', 'alert', 'emerg', 'emergency') %}
+              {% set level_class = 'text-bg-danger' %}
+            {% elif lvl in ('warning', 'warn') %}
+              {% set level_class = 'text-bg-warning' %}
+            {% elif lvl == 'notice' %}
+              {% set level_class = 'text-bg-info' %}
+            {% elif lvl == 'debug' %}
+              {% set level_class = 'text-bg-secondary' %}
+            {% else %}
+              {% set level_class = 'text-bg-secondary' %}
+            {% endif %}
+            <tr data-log-id="{{ e.id }}">
+              <td class="text-start text-nowrap">{{ e.time or '' }}</td>
+              <td class="text-start">{% if e.level %}<span class="badge fw-medium text-lowercase {{ level_class }}">{{ e.level }}</span>{% endif %}</td>
+              <td class="text-start small text-muted">{{ e.facility or '' }}</td>
+              <td class="text-start">{{ e.message or '' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    </div>
   </div>
+</div>
+<script>
+window.KeeneticLiveI18n = {
+  online: {{ _('Online')|tojson }},
+  offline: {{ _('Offline')|tojson }},
+  update_available: {{ _('Update available')|tojson }},
+  no_clients: {{ _('No active clients')|tojson }},
+  disconnect_client: {{ _('Disconnect client')|tojson }},
+  disconnect_client_confirm: {{ _('Disconnect this VPN client?')|tojson }},
+  no_log_entries: {{ _('No log entries')|tojson }}
+};
+(function () {
+  function activateHashTab() {
+    var hash = (location.hash || '').replace(/^#/, '');
+    if (hash !== 'keenetic-vpn' && hash !== 'keenetic-log') return false;
+    var btn = document.getElementById(hash + '-tab');
+    var pane = document.getElementById(hash);
+    if (!btn || !pane) return false;
+    if (window.bootstrap && bootstrap.Tab) {
+      bootstrap.Tab.getOrCreateInstance(btn).show();
+      return true;
+    }
+    document.querySelectorAll('#keeneticRouterTabs .nav-link').forEach(function (el) {
+      el.classList.remove('active');
+      el.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('#keeneticRouterTabsContent .tab-pane').forEach(function (el) {
+      el.classList.remove('show', 'active');
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    pane.classList.add('show', 'active');
+    return true;
+  }
+
+  function bootRouterTables() {
+    activateHashTab();
+    KeeneticDt.initWhenVisible("#keenetic-devices-table", {
+      order: [[1, "asc"]],
+      columnDefs: [{ orderable: false, targets: [0, -1] }],
+      stateSave: true,
+      stateDuration: 0,
+    });
+    KeeneticDt.initWhenVisible("#keenetic-vpn-table", {
+      order: [[1, "asc"]],
+      columnDefs: [{ orderable: false, targets: [0, 6, -1] }],
+      stateSave: true,
+      stateDuration: 0,
+    });
+    KeeneticDt.initWhenVisible("#keenetic-log-table", {
+      order: [[0, "desc"]],
+      pageLength: 50,
+      stateSave: true,
+      stateDuration: 0,
+    });
+  }
+
+  document.querySelectorAll('#keeneticRouterTabs button[data-bs-toggle="tab"]').forEach(function (el) {
+    el.addEventListener('shown.bs.tab', function (ev) {
+      var id = ev.target.getAttribute('aria-controls');
+      if (id) history.replaceState(null, '', '#' + id);
+      if (typeof jQuery !== 'undefined' && jQuery.fn.dataTable) {
+        jQuery.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+      }
+    });
+  });
+
+  window.addEventListener('hashchange', activateHashTab);
+  window.KeeneticBootRouterTables = bootRouterTables;
+})();
+</script>
+<script src="{{ config.ASSETS_ROOT }}/plugins/datatables/js/dataTables.min.js"></script>
+<script src="{{ config.ASSETS_ROOT }}/plugins/datatables/js/dataTables.bootstrap5.min.js"></script>
+<script src="/Keenetic/static/js/datatables.js"></script>
+<script src="/Keenetic/static/js/live.js"></script>
+<script>KeeneticBootRouterTables();</script>
 {% endblock %}
