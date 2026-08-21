@@ -65,7 +65,7 @@ class Keenetic(BasePlugin):
         self.system = True
         self.actions = ["cycle", "search", "widget"]
         self.category = "Devices"
-        self.version = "0.17"
+        self.version = "0.18"
         self.routers = {}
         self._processing_routers = set()
         self._processing_lock = threading.Lock()

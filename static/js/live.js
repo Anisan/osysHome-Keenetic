@@ -39,6 +39,83 @@
     return s + "s";
   }
 
+  /** Format UTC (naive or Z) datetime string in the browser local timezone. */
+  function fmtUpdated(val) {
+    if (val == null || val === "") return "";
+    var s = String(val).trim();
+    if (!s) return "";
+    // Runtime sends naive UTC "YYYY-MM-DD HH:MM:SS" — treat as UTC.
+    if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?$/.test(s)) {
+      s = s.replace(" ", "T");
+      if (s.length === 16) s += ":00";
+      s += "Z";
+    } else if (s.indexOf(" ") > 0 && s.indexOf("T") < 0) {
+      s = s.replace(" ", "T");
+    }
+    var d = new Date(s);
+    if (isNaN(d.getTime())) return String(val);
+    try {
+      var parts = new Intl.DateTimeFormat("en-CA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }).formatToParts(d);
+      var map = {};
+      for (var i = 0; i < parts.length; i++) {
+        if (parts[i].type !== "literal") map[parts[i].type] = parts[i].value;
+      }
+      var hour = map.hour === "24" ? "00" : map.hour;
+      return map.year + "-" + map.month + "-" + map.day + " " + hour + ":" + map.minute + ":" + map.second;
+    } catch (e) {
+      return String(val);
+    }
+  }
+
+  function setUpdated(row, utcVal) {
+    var el = row.querySelector('[data-field="updated"]');
+    if (!el) return;
+    var raw = utcVal == null ? "" : String(utcVal);
+    el.setAttribute("data-utc", raw);
+    el.textContent = fmtUpdated(raw);
+  }
+
+  /** Convert SSR UTC timestamps (incl. DataTables paged rows) to browser local time. */
+  function localizeUpdatedCells() {
+    function fix(el) {
+      if (!el) return;
+      var raw = el.getAttribute("data-utc");
+      if (raw == null || raw === "") {
+        raw = String(el.textContent || "").trim();
+        if (raw) el.setAttribute("data-utc", raw);
+      }
+      if (!raw) return;
+      el.textContent = fmtUpdated(raw);
+    }
+    var seen = {};
+    if (typeof jQuery !== "undefined" && jQuery.fn && jQuery.fn.dataTable) {
+      jQuery("table").each(function () {
+        if (!jQuery.fn.dataTable.isDataTable(this)) return;
+        var nodes = jQuery(this).DataTable().rows().nodes();
+        for (var i = 0; i < nodes.length; i++) {
+          var row = nodes[i];
+          if (!row) continue;
+          var el = row.querySelector ? row.querySelector('[data-field="updated"]') : null;
+          if (!el || seen[el]) continue;
+          seen[el] = true;
+          fix(el);
+        }
+      });
+    }
+    document.querySelectorAll('[data-field="updated"]').forEach(function (el) {
+      if (seen[el]) return;
+      fix(el);
+    });
+  }
+
   function esc(text) {
     return String(text == null ? "" : text)
       .replace(/&/g, "&amp;")
@@ -139,7 +216,7 @@
       }
     }
     if ("access" in data) setDeviceAccess(row, data.access);
-    if ("updated" in data) setText(row, "updated", data.updated || "");
+    if ("updated" in data) setUpdated(row, data.updated);
     invalidateRow(row);
   }
 
@@ -216,7 +293,7 @@
         renderSessions(row, data.sessions, data.id);
       }
     }
-    if ("updated" in data) setText(row, "updated", data.updated || "");
+    if ("updated" in data) setUpdated(row, data.updated);
     invalidateRow(row);
   }
 
@@ -229,7 +306,7 @@
     if ("ram" in data) setText(row, "ram", data.ram == null || data.ram === "" ? "" : data.ram + "%");
     if ("uptime" in data) setText(row, "uptime", fmtUptime(data.uptime));
     if ("firmware_version" in data) setText(row, "firmware_version", data.firmware_version || "");
-    if ("updated" in data) setText(row, "updated", data.updated || "");
+    if ("updated" in data) setUpdated(row, data.updated);
     if ("update_available" in data || "update_version" in data) {
       var badge = row.querySelector('[data-field="update_available"]');
       var applyBtn = row.querySelector('[data-field="apply_update"]');
@@ -398,6 +475,7 @@
 
   socket.emit("subscribeData", ["Keenetic"]);
   socket.on("Keenetic", onKeenetic);
+  localizeUpdatedCells();
 
   window.addEventListener("beforeunload", function () {
     try {

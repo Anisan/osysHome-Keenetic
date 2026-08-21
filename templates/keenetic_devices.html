@@ -128,7 +128,7 @@
                         <a href="/admin/Objects?view=object&object={{ device.linked_object }}&tab=properties">{{ device.linked_object }}</a>
                         {% endif %}
                     </td>
-                    <td class="text-start {{ row_bg }}" data-field="updated">{{ device.updated }}</td>
+                    <td class="text-start {{ row_bg }}" data-field="updated" data-utc="{{ device.updated or '' }}">{{ device.updated }}</td>
                     <td class="text-start {{ row_bg }}" width="1%" nowrap>
                         <div class="btn-group" data-field="access-actions">
                             {% if device.mac != '0.0.0.0.0.0' %}
@@ -255,7 +255,7 @@
                         <a href="/admin/Objects?view=object&object={{ vpn.linked_object }}&tab=properties">{{ vpn.linked_object }}</a>
                         {% endif %}
                     </td>
-                    <td class="text-start" data-field="updated">{{ vpn.updated }}</td>
+                    <td class="text-start" data-field="updated" data-utc="{{ vpn.updated or '' }}">{{ vpn.updated }}</td>
                     <td class="text-start" width="1%" nowrap>
                         <div class="btn-group">
                             {% if vpn.role == 'server' %}

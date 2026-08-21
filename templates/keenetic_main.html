@@ -103,7 +103,7 @@
                 <span class="badge text-bg-danger" data-field="online">{{ _('Offline')}}</span>
                 {% endif %}
               </td>
-              <td class="text-start" data-field="updated">{{ router.updated }}</td>
+              <td class="text-start" data-field="updated" data-utc="{{ router.updated or '' }}">{{ router.updated }}</td>
               <td class="text-start" width="1%" nowrap>
                   <div class="btn-group">
                     <a href="?router={{router.id}}" class="btn btn-secondary" title="{{ _('Devices')}}"><i class="feather icon-align-justify"></i></a>
