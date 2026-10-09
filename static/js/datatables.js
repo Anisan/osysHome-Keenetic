@@ -74,13 +74,30 @@
       { className: "text-start", targets: "_all" },
     ]);
     var userInitComplete = options.initComplete;
+    // DataTables 3 dropped settings.nTable — keep a direct node ref / API node().
     options.initComplete = function (settings) {
-      markDtReady(settings.nTable);
+      var node = table;
+      try {
+        if (this && typeof this.api === "function") {
+          node = this.api().table().node() || table;
+        } else if (this && typeof this.table === "function") {
+          node = this.table().node() || table;
+        }
+      } catch (e) {}
+      markDtReady(node || table);
       if (typeof userInitComplete === "function") {
         userInitComplete.call(this, settings);
       }
     };
-    return jQuery(selector).DataTable(options);
+    try {
+      return jQuery(selector).DataTable(options);
+    } catch (err) {
+      markDtReady(table);
+      if (typeof console !== "undefined" && console.error) {
+        console.error("KeeneticDt.init failed:", err);
+      }
+      return null;
+    }
   }
 
   /** Init when table tab is visible; defer hidden Bootstrap tabs until shown. */
